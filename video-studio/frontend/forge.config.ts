@@ -17,9 +17,23 @@ const config: ForgeConfig = {
     name: 'Video Studio',
     extraResource: [
       backendDistPath,
-    ],
-  },
   rebuildConfig: {},
+  hooks: {
+    postPackage: async (forgeConfig, packageResult) => {
+      if (process.platform === 'darwin') {
+        const { execSync } = await import('node:child_process');
+        for (const outputDir of packageResult.outputPaths) {
+          const appPath = path.join(outputDir, 'Video Studio.app');
+          try {
+            console.log(`[Hook postPackage] Ad-hoc re-signing ${appPath}...`);
+            execSync(`codesign --force --deep --sign - "${appPath}"`);
+          } catch (err) {
+            console.error('Failed to ad-hoc codesign:', err);
+          }
+        }
+      }
+    },
+  },
   makers: [
     new MakerSquirrel({
       setupIcon: './public/icon.ico',
