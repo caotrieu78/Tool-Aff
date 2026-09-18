@@ -797,7 +797,7 @@ export default function ModuleLocalizePage() {
         {/* ─────────────────────────────────────────────────────────────
             LEFT COLUMN (5 cols / 4 cols on 2xl): LARGE PHONE PREVIEW STUDIO
         ───────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 space-y-3 lg:sticky lg:top-20">
+        <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 space-y-3 lg:sticky lg:top-20">
           <div className="bg-[#141722] border border-slate-800 rounded-3xl p-3.5 sm:p-4 shadow-lg space-y-3">
             {/* Header: Title + TikTok Safezone toggle */}
             <div className="flex items-center justify-between">
@@ -864,16 +864,16 @@ export default function ModuleLocalizePage() {
 
             {/* EXPANDED PHONE MOCKUP SHELL (Tăng chiều cao chuẩn tỷ lệ 9:16/9:19.5 không bị cụt) */}
             {selectedVideo ? (
-              <div className="relative flex items-center justify-center p-2 sm:p-2.5 bg-[#0a0c12] border border-slate-800/80 rounded-2xl min-h-[660px] sm:min-h-[720px] xl:min-h-[760px] shadow-inner select-none">
+              <div className="relative flex items-center justify-center p-2 sm:p-2.5 bg-[#0a0c12] border border-slate-800/80 rounded-2xl min-h-[540px] sm:min-h-[600px] xl:min-h-[660px] shadow-inner select-none">
                 <div
                   className={`relative overflow-hidden transition-all duration-200 shadow-2xl ${
                     phoneMockup === 'iphone16'
-                      ? 'w-[290px] sm:w-[320px] xl:w-[350px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[50px] ring-1 ring-white/10 p-[2px]'
+                      ? 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[46px] ring-1 ring-white/10 p-[2px]'
                       : phoneMockup === 'iphone_notch'
-                      ? 'w-[290px] sm:w-[320px] xl:w-[350px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[44px] ring-1 ring-white/10 p-[2px]'
+                      ? 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[40px] ring-1 ring-white/10 p-[2px]'
                       : phoneMockup === 'android_s24'
-                      ? 'w-[285px] sm:w-[315px] xl:w-[345px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#14161f] border-[5px] border-[#3a3e4e] rounded-[32px] ring-1 ring-white/10 p-[1px]'
-                      : 'w-[290px] sm:w-[320px] xl:w-[350px] aspect-[9/16] rounded-2xl border border-slate-800 bg-black p-0 shadow-lg'
+                      ? 'w-[265px] sm:w-[290px] xl:w-[320px] 2xl:w-[345px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#14161f] border-[5px] border-[#3a3e4e] rounded-[30px] ring-1 ring-white/10 p-[1px]'
+                      : 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/16] max-h-[calc(100vh-230px)] rounded-2xl border border-slate-800 bg-black p-0 shadow-lg'
                   }`}
                 >
                   {/* Top Notch / Island */}
@@ -1087,9 +1087,9 @@ export default function ModuleLocalizePage() {
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
-            RIGHT COLUMN (7 cols / 8 cols on 2xl): EXPANDED VIDEO SELECTOR (FULL STUDIO)
+            RIGHT COLUMN (8 cols / 9 cols on 2xl): EXPANDED VIDEO SELECTOR (FULL STUDIO)
         ───────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-7 xl:col-span-8 2xl:col-span-8 space-y-5">
+        <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-5">
           {/* VIDEO SELECTOR CONTAINER */}
           <div className="bg-[#141722] border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
             {/* Header: Title + Refresh Button */}

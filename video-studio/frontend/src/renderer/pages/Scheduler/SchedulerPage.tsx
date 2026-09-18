@@ -1934,10 +1934,10 @@ export default function SchedulerPage() {
           onClick={closeScheduleModal}
         >
           <div
-            className="w-full max-w-xl bg-[#141724] border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className="w-full max-w-xl max-h-[92vh] bg-[#141724] border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#10131e]">
+            <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-[#10131e] shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
                   <Clock size={18} />
@@ -1964,7 +1964,7 @@ export default function SchedulerPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Kênh Đăng: Tự động dùng kênh đang mở, không cần chọn lại */}
               {selectedChannel ? (
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-violet-950/40 via-[#121524] to-indigo-950/40 border border-violet-500/30 flex items-center justify-between">

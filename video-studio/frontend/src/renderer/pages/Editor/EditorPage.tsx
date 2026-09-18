@@ -861,8 +861,8 @@ export default function EditorPage() {
       {/* ── BỐ CỤC 2 CỘT CHUẨN TƯƠNG ĐỒNG HÌNH 2 ───────────────── */}
       <div className="flex-1 pt-3 lg:pt-4 px-6 lg:px-8 pb-6 lg:pb-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start overflow-y-auto">
         
-        {/* ── CỘT 1 (4-5 cols): MÀN HÌNH ĐIỆN THOẠI PHONE MOCKUP ── */}
-        <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 space-y-4 lg:sticky lg:top-4">
+        {/* ── CỘT 1 (3-4 cols): MÀN HÌNH ĐIỆN THOẠI PHONE MOCKUP ── */}
+        <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 space-y-4 lg:sticky lg:top-4">
           <div className="bg-[#141722] border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4">
             
             {/* Header: Title + TikTok Safezone & Ratio toggle */}
@@ -930,16 +930,16 @@ export default function EditorPage() {
 
             {/* PHONE MOCKUP SHELL (Chuẩn tỷ lệ 9:16/9:19.5 TikTok cao ráo) */}
             {selectedVideo ? (
-              <div className="relative flex flex-col items-center justify-center p-3.5 bg-[#0a0c12] border border-slate-800/80 rounded-2xl min-h-[660px] sm:min-h-[720px] xl:min-h-[760px] shadow-inner select-none">
+              <div className="relative flex flex-col items-center justify-center p-3.5 bg-[#0a0c12] border border-slate-800/80 rounded-2xl min-h-[540px] sm:min-h-[600px] xl:min-h-[660px] shadow-inner select-none">
                 <div
                   className={`relative overflow-hidden transition-all duration-200 shadow-2xl ${
                     phoneMockup === 'iphone16'
-                      ? 'w-[290px] sm:w-[320px] xl:w-[350px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[50px] ring-1 ring-white/10 p-[2px]'
+                      ? 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[46px] ring-1 ring-white/10 p-[2px]'
                       : phoneMockup === 'iphone_notch'
-                      ? 'w-[290px] sm:w-[320px] xl:w-[350px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[44px] ring-1 ring-white/10 p-[2px]'
+                      ? 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#1a1b24] border-[7px] border-[#343947] rounded-[40px] ring-1 ring-white/10 p-[2px]'
                       : phoneMockup === 'android_s24'
-                      ? 'w-[285px] sm:w-[315px] xl:w-[345px] h-[640px] sm:h-[700px] xl:h-[750px] bg-[#14161f] border-[5px] border-[#3a3e4e] rounded-[32px] ring-1 ring-white/10 p-[1px]'
-                      : 'w-[290px] sm:w-[320px] xl:w-[350px] aspect-[9/16] rounded-2xl border border-slate-800 bg-black p-0 shadow-lg'
+                      ? 'w-[265px] sm:w-[290px] xl:w-[320px] 2xl:w-[345px] aspect-[9/18.5] max-h-[calc(100vh-230px)] bg-[#14161f] border-[5px] border-[#3a3e4e] rounded-[30px] ring-1 ring-white/10 p-[1px]'
+                      : 'w-[270px] sm:w-[295px] xl:w-[325px] 2xl:w-[350px] aspect-[9/16] max-h-[calc(100vh-230px)] rounded-2xl border border-slate-800 bg-black p-0 shadow-lg'
                   }`}
                 >
                   {/* Top Notch / Island */}
@@ -1133,8 +1133,8 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* ── CỘT 2 (7-8 cols): KHÔNG GIAN LÀM VIỆC RỘNG RÃI THOÁNG ĐÃNG ── */}
-        <div className="lg:col-span-7 xl:col-span-8 2xl:col-span-8 space-y-5">
+        {/* ── CỘT 2 (8-9 cols): KHÔNG GIAN LÀM VIỆC RỘNG RÃI THOÁNG ĐÃNG ── */}
+        <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-5">
           
           {/* ══════════════════════════════════════════════════════════
               TAB 1: KHO VIDEO THÀNH PHẨM (DẠNG LIST RỘNG RÃI NHƯ HÌNH 2)

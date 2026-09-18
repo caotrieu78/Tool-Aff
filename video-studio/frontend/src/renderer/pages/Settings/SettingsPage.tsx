@@ -719,7 +719,7 @@ export default function SettingsPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between px-8 lg:px-12 py-5 border-b border-slate-800/80 sticky top-0 bg-[#0f1117]/95 backdrop-blur z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 lg:px-10 py-5 border-b border-slate-800/80 sticky top-0 bg-[#0f1117]/95 backdrop-blur z-10">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white">Cài Đặt Hệ Thống</h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -728,7 +728,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center bg-[#161a24] p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center bg-[#161a24] p-1 rounded-xl border border-slate-800 overflow-x-auto shrink-0">
           <button
             onClick={() => setActiveTab('gemini')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
@@ -771,7 +771,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-[1700px] mx-auto px-8 lg:px-12 py-6 space-y-6">
+      <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Alert Notification */}
         {keyAlert && (
           <div
@@ -1872,7 +1872,7 @@ export default function SettingsPage() {
                   <span>Đang tải danh sách...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {tiktokChannels.map((ch) => (
                     <TiktokChannelCard
                       key={ch.id}
