@@ -61,6 +61,23 @@ interface TtsVoiceItem {
   is_custom?: boolean;
 }
 
+// Nhãn hiển thị + màu badge cho từng engine TTS. Engine chưa có trong map (vd engine mới thêm
+// sau này ở backend) vẫn hiển thị đúng tên thay vì bị gán nhầm sang engine khác.
+const ENGINE_DISPLAY: Record<string, { label: string; badgeClass: string }> = {
+  gemini: { label: 'Gemini', badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-300' },
+  'edge-tts': { label: 'Edge-TTS', badgeClass: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' },
+  vieneu: { label: 'VieNeu-TTS', badgeClass: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
+};
+
+function getEngineDisplay(engine: string): { label: string; badgeClass: string } {
+  return (
+    ENGINE_DISPLAY[engine] || {
+      label: engine,
+      badgeClass: 'bg-slate-500/10 border-slate-500/30 text-slate-300',
+    }
+  );
+}
+
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as 'gemini' | 'tts' | 'tiktok') || 'gemini';
@@ -116,7 +133,7 @@ export default function SettingsPage() {
     return [];
   });
 
-  const [selectedEngine, setSelectedEngine] = useState<'all' | 'gemini' | 'custom' | 'edge-tts'>('all');
+  const [selectedEngine, setSelectedEngine] = useState<string>('all');
   const [selectedGender, setSelectedGender] = useState<'all' | 'Female' | 'Male'>('all');
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
@@ -338,16 +355,18 @@ export default function SettingsPage() {
       const vList = res.voices || [];
       setVoices(vList);
 
-      // Nếu chưa có config enabledVoiceIds thì mặc định bật tất cả; nếu có rồi thì tự động gộp các giọng Gemini mới
+      // Nếu chưa có config enabledVoiceIds thì mặc định bật tất cả; nếu có rồi thì tự động gộp
+      // mọi giọng mới xuất hiện (bất kể engine nào — Gemini, Edge-TTS, VieNeu-TTS, hay engine mới
+      // thêm sau này) để người dùng cũ không bị "mất" giọng mới do chưa từng lưu trong localStorage.
       const saved = localStorage.getItem('video_studio_enabled_voices');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            const geminiIds = vList.filter((v: TtsVoiceItem) => v.engine === 'gemini').map((v: TtsVoiceItem) => v.id);
-            const missingGemini = geminiIds.filter((id: string) => !parsed.includes(id));
-            if (missingGemini.length > 0) {
-              const merged = [...parsed, ...missingGemini];
+            const allIds = vList.map((v: TtsVoiceItem) => v.id);
+            const missingIds = allIds.filter((id: string) => !parsed.includes(id));
+            if (missingIds.length > 0) {
+              const merged = [...parsed, ...missingIds];
               setEnabledVoiceIds(merged);
               localStorage.setItem('video_studio_enabled_voices', JSON.stringify(merged));
             } else {
@@ -405,33 +424,7 @@ export default function SettingsPage() {
     });
   };
 
-  const handleEnableAllVoices = () => {
-    const allIds = voices.map((v) => v.id);
-    setEnabledVoiceIds(allIds);
-    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(allIds));
-  };
 
-  const handleEnableEdgeTTSOnly = () => {
-    const edgeIds = voices.filter((v) => v.engine === 'edge-tts').map((v) => v.id);
-    if (edgeIds.length === 0) return;
-    if (!edgeIds.includes(selectedVoice)) {
-      setSelectedVoice(edgeIds[0]);
-      localStorage.setItem('video_studio_default_voice', edgeIds[0]);
-    }
-    setEnabledVoiceIds(edgeIds);
-    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(edgeIds));
-  };
-
-  const handleEnableGeminiOnly = () => {
-    const geminiIds = voices.filter((v) => v.engine === 'gemini').map((v) => v.id);
-    if (geminiIds.length === 0) return;
-    if (!geminiIds.includes(selectedVoice)) {
-      setSelectedVoice(geminiIds[0]);
-      localStorage.setItem('video_studio_default_voice', geminiIds[0]);
-    }
-    setEnabledVoiceIds(geminiIds);
-    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(geminiIds));
-  };
 
   const handleSetDefaultVoice = (voiceId: string) => {
     setSelectedVoice(voiceId);
@@ -1139,6 +1132,36 @@ export default function SettingsPage() {
                   >
                     Edge-TTS ({voices.filter(v => v.engine === 'edge-tts').length})
                   </button>
+                  {voices.some(v => v.engine === 'vieneu') && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngine('vieneu')}
+                      className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
+                        selectedEngine === 'vieneu'
+                          ? 'bg-emerald-600 text-white'
+                          : 'text-slate-400 hover:text-emerald-300'
+                      }`}
+                    >
+                      VieNeu-TTS ({voices.filter(v => v.engine === 'vieneu').length})
+                    </button>
+                  )}
+                  {/* Bất kỳ engine mới nào khác (thêm sau này ở backend) tự động có filter chip riêng */}
+                  {Array.from(new Set(voices.map(v => v.engine)))
+                    .filter(eng => eng !== 'gemini' && eng !== 'edge-tts' && eng !== 'vieneu')
+                    .map(eng => (
+                      <button
+                        key={eng}
+                        type="button"
+                        onClick={() => setSelectedEngine(eng)}
+                        className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
+                          selectedEngine === eng
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {getEngineDisplay(eng).label} ({voices.filter(v => v.engine === eng).length})
+                      </button>
+                    ))}
                   {voices.some(v => v.is_custom) && (
                     <button
                       type="button"
@@ -1155,7 +1178,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
                 {/* Gemini 2.5 Pro TTS Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'gemini' ? 'all' : 'gemini')}
@@ -1219,6 +1242,42 @@ export default function SettingsPage() {
                     <span className="font-semibold text-slate-400">2 giọng</span>
                   </div>
                 </div>
+
+                {/* VieNeu-TTS Card — chỉ hiện khi backend đã cài & liệt kê được preset (pip install vieneu) */}
+                {voices.some(v => v.engine === 'vieneu') && (
+                  <div
+                    onClick={() => setSelectedEngine(selectedEngine === 'vieneu' ? 'all' : 'vieneu')}
+                    className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                      selectedEngine === 'vieneu'
+                        ? 'border-emerald-500/80 bg-emerald-500/10 shadow-sm'
+                        : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Mic size={13} className="text-emerald-400" />
+                          VieNeu-TTS
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
+                          Offline
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-normal">
+                        Mã nguồn mở, chạy local, hỗ trợ emotion cues như [cười], [thở dài].
+                      </p>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-emerald-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={12} />
+                        VieNeu-TTS
+                      </span>
+                      <span className="font-semibold text-slate-400">
+                        {voices.filter(v => v.engine === 'vieneu').length} giọng
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1240,35 +1299,8 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                {/* Quick actions & Gender filters */}
+                {/* Gender Filters */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
-                    <button
-                      type="button"
-                      onClick={handleEnableAllVoices}
-                      className="px-2 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer font-medium"
-                      title="Hiện tất cả các giọng"
-                    >
-                      Hiện tất cả
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleEnableGeminiOnly}
-                      className="px-2 py-1 rounded-lg text-amber-300 hover:text-slate-950 hover:bg-amber-400 transition cursor-pointer font-medium flex items-center gap-1"
-                      title="Chỉ xuất các giọng Google Gemini ra kho"
-                    >
-                      <Sparkles size={11} />
-                      <span>Chỉ Gemini</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleEnableEdgeTTSOnly}
-                      className="px-2 py-1 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-600/30 transition cursor-pointer font-medium"
-                      title="Chỉ xuất các giọng Edge-TTS ra kho"
-                    >
-                      Chỉ Edge-TTS
-                    </button>
-                  </div>
 
                   {/* Gender Filters */}
                   <div className="flex items-center gap-1 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
@@ -1376,13 +1408,9 @@ export default function SettingsPage() {
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-rose-500/15 border-rose-500/30 text-rose-300">
                               Clone
                             </span>
-                          ) : v.engine === 'gemini' ? (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-amber-500/15 border-amber-500/30 text-amber-300">
-                              Gemini
-                            </span>
                           ) : (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-indigo-500/10 border-indigo-500/30 text-indigo-300">
-                              Edge-TTS
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold border ${getEngineDisplay(v.engine).badgeClass}`}>
+                              {getEngineDisplay(v.engine).label}
                             </span>
                           )}
 
