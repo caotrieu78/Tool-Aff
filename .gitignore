@@ -17,9 +17,7 @@
 **/out/
 **/.vite/
 
-# Kokoro TTS (Cloned repo with heavy model weights > 200MB)
-video-studio/backend/Kokoro-Vietnamese/
-**/Kokoro-Vietnamese/
+
 
 # Storage & Databases & Media
 video-studio/backend/storage/library/
