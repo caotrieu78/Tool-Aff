@@ -1495,7 +1495,6 @@ export default function ModuleLocalizePage() {
                               >
                                 {presets.map((p) => {
                                   const isActive = p.id === currentPresetId;
-                                  const pSettings = p.settings || {};
                                   return (
                                     <button
                                       key={p.id}
@@ -1505,39 +1504,19 @@ export default function ModuleLocalizePage() {
                                         const el = document.getElementById(dropdownId);
                                         if (el) el.classList.add('hidden');
                                       }}
-                                      className={`w-full p-2.5 text-left transition flex flex-col gap-1 cursor-pointer border-b border-slate-800/60 last:border-0 ${
+                                      className={`w-full px-3 py-2 text-left transition flex items-center justify-between cursor-pointer border-b border-slate-800/60 last:border-0 ${
                                         isActive
                                           ? 'bg-indigo-600/25 text-white'
                                           : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'
                                       }`}
                                     >
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5 font-bold text-xs">
-                                          {p.is_default && <span className="text-amber-400 text-[10px]">⭐</span>}
-                                          <span className="truncate">{p.name}</span>
-                                        </div>
-                                        {isActive && (
-                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                                        )}
+                                      <div className="flex items-center gap-1.5 font-medium text-xs truncate">
+                                        {p.is_default && <span className="text-amber-400 text-[10px]">⭐</span>}
+                                        <span className="truncate">{p.name}</span>
                                       </div>
-                                      {/* Config summary tags */}
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        {(pSettings.voice_id || pSettings.voiceId) && (
-                                          <span className="px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[8px] font-medium">
-                                            🎙 {pSettings.voice_id || pSettings.voiceId}
-                                          </span>
-                                        )}
-                                        {(pSettings.sub_font || pSettings.subFont) && (
-                                          <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/20 text-[8px] font-medium">
-                                            𝑇 {pSettings.sub_font || pSettings.subFont}{(pSettings.sub_font_size || pSettings.subFontSize) ? ` (${pSettings.sub_font_size || pSettings.subFontSize}px)` : ''}
-                                          </span>
-                                        )}
-                                        {(pSettings.ai_style || pSettings.aiStyle) && (
-                                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[8px] font-medium">
-                                            ✨ {pSettings.ai_style || pSettings.aiStyle}
-                                          </span>
-                                        )}
-                                      </div>
+                                      {isActive && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 ml-2" />
+                                      )}
                                     </button>
                                   );
                                 })}
