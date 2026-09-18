@@ -328,15 +328,18 @@ def add_custom_voice(
     ref_audio_bytes: bytes,
     ref_audio_filename: str,
     ref_text: str | None = None,
+    engine: str = "omnivoice",
 ) -> dict[str, Any]:
     """
     Tạo một giọng tùy ý mới từ audio mẫu.
     1. Lưu file audio gốc
     2. Chuyển đổi sang ref.wav chuẩn
-    3. Auto-transcribe nếu thiếu ref_text
-    4. Sinh sample.mp3 nghe thử
+    3. Auto-transcribe nếu thiếu ref_text (bỏ qua với engine="vieneu" — VieNeu-TTS không cần ref_text)
+    4. Sinh sample.mp3 nghe thử bằng engine tương ứng (OmniVoice hoặc VieNeu-TTS)
     5. Đăng ký vào registry.json
     """
+    engine = engine if engine in ("omnivoice", "vieneu") else "omnivoice"
+
     voice_id = f"custom_{uuid.uuid4().hex[:8]}"
     voice_dir = get_custom_voices_dir() / voice_id
     voice_dir.mkdir(parents=True, exist_ok=True)
@@ -348,8 +351,9 @@ def add_custom_voice(
     ref_wav_path = voice_dir / "ref.wav"
     convert_audio_to_ref_wav(str(raw_path), str(ref_wav_path))
 
+    # VieNeu-TTS nhân bản tức thì không cần ref_text (không dùng auto-transcribe ASR)
     actual_ref_text = ref_text
-    if not actual_ref_text:
+    if engine == "omnivoice" and not actual_ref_text:
         actual_ref_text = auto_transcribe_audio(str(ref_wav_path))
 
     if actual_ref_text:
@@ -362,22 +366,31 @@ def add_custom_voice(
         "Giọng đọc tự nhiên, sắc sảo và đầy biểu cảm."
     )
     try:
-        manager = OmniVoiceEngineManager()
-        manager.synthesize_to_file(
-            text=sample_text,
-            output_path=str(sample_path),
-            ref_audio_path=str(ref_wav_path),
-            ref_text=actual_ref_text or None,
-        )
-        logger.info(f"[OmniVoice] Sample generated: {sample_path}")
+        if engine == "vieneu":
+            from app.services.vieneu_tts_service import _vieneu_manager
+            _vieneu_manager.synthesize_to_file(
+                text=sample_text,
+                output_path=str(sample_path),
+                ref_audio_path=str(ref_wav_path),
+            )
+            logger.info(f"[VieNeu-TTS] Sample generated: {sample_path}")
+        else:
+            manager = OmniVoiceEngineManager()
+            manager.synthesize_to_file(
+                text=sample_text,
+                output_path=str(sample_path),
+                ref_audio_path=str(ref_wav_path),
+                ref_text=actual_ref_text or None,
+            )
+            logger.info(f"[OmniVoice] Sample generated: {sample_path}")
     except Exception as e:  # noqa: BLE001
-        logger.error(f"[OmniVoice] Failed to generate sample for {voice_id}: {e}")
+        logger.error(f"[{engine}] Failed to generate sample for {voice_id}: {e}")
 
     voice_item = {
         "id": voice_id,
         "name": name,
         "gender": gender,
-        "engine": "omnivoice",
+        "engine": engine,
         "is_custom": True,
         "description": f"Giọng tùy ý: {name}",
         "ref_audio": str(ref_wav_path),

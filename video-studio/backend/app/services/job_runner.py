@@ -386,7 +386,7 @@ async def run_affiliate_pipeline(job_id: int):
     1. Highlight/Scene Detection: Cắt cảnh, chấm điểm, lọc top cảnh nổi bật.
     2. Scrape/Product Info: Đọc hoặc lưu thông tin sản phẩm (Shopee, TikTok Shop).
     3. Gemini Script: Sinh kịch bản bán hàng khớp timing từng cảnh + Caption/Hashtags.
-    4. TTS: Đọc kịch bản theo timeline với Edge-TTS hoặc Kokoro.
+    4. TTS: Đọc kịch bản theo timeline với Edge-TTS hoặc Gemini 2.5 Pro.
     5. Compose: Ghép các cảnh theo thứ tự đã chọn, burn phụ đề xịn, mix voiceover.
     6. Multi-version: Sinh thêm các phiên bản xáo trộn nếu người dùng yêu cầu.
     """

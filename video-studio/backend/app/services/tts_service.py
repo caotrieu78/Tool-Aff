@@ -47,124 +47,7 @@ VOICES_PRESET: list[dict[str, Any]] = [
         "engine": "edge-tts",
         "is_default": False,
     },
-    # ── Kokoro-Vietnamese Voices (Open Source / Offline) ──
-    {
-        "id": "diem_trinh",
-        "name": "Diễm Trinh (Nữ miền Nam)",
-        "gender": "Female",
-        "region": "Miền Nam",
-        "description": "Giọng nữ miền Nam ngọt ngào, dịu dàng, tự nhiên, thích hợp bán hàng và giới thiệu sản phẩm.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "hung_thinh",
-        "name": "Hưng Thịnh (Nam miền Bắc)",
-        "gender": "Male",
-        "region": "Miền Bắc",
-        "description": "Giọng nam miền Bắc trầm ấm, dõng dạc, thuyết minh phim và giới thiệu công nghệ.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "mai_linh",
-        "name": "Mai Linh (Nữ miền Bắc)",
-        "gender": "Female",
-        "region": "Miền Bắc",
-        "description": "Giọng nữ miền Bắc thanh thoát, trong trẻo, phù hợp review phong cách sống, mỹ phẩm.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "ngoc_huyen",
-        "name": "Ngọc Huyền (Nữ miền Nam)",
-        "gender": "Female",
-        "region": "Miền Nam",
-        "description": "Giọng nữ miền Nam truyền cảm, sắc sảo, thích hợp review đồ ăn, mẹ và bé, phong cách năng động.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "phat_tai",
-        "name": "Phát Tài (Nam miền Nam)",
-        "gender": "Male",
-        "region": "Miền Nam",
-        "description": "Giọng nam miền Nam hào sảng, vui tươi, tràn đầy năng lượng tích cực.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "thanh_dat",
-        "name": "Thành Đạt (Nam miền Bắc)",
-        "gender": "Male",
-        "region": "Miền Bắc",
-        "description": "Giọng nam miền Bắc chuyên nghiệp, rõ ràng, phong cách tin tức tài chính, kinh doanh.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "tuan_ngoc",
-        "name": "Tuấn Ngọc (Nam miền Bắc)",
-        "gender": "Male",
-        "region": "Miền Bắc",
-        "description": "Giọng nam trầm ấm, sâu lắng, thích hợp đọc truyện, podcast, tâm sự.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "my_yen",
-        "name": "Mỹ Yến (Nữ miền Nam)",
-        "gender": "Female",
-        "region": "Miền Nam",
-        "description": "Giọng nữ miền Nam nhẹ nhàng, dễ thương, review thời trang trẻ, phụ kiện.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "thuc_trinh",
-        "name": "Thục Trinh (Nữ miền Trung)",
-        "gender": "Female",
-        "region": "Miền Trung",
-        "description": "Giọng nữ miền Trung đằm thắm, mang nét đặc trưng độc đáo, cuốn hút.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "duc_an",
-        "name": "Đức An (Nam miền Bắc)",
-        "gender": "Male",
-        "region": "Miền Bắc",
-        "description": "Giọng nam trẻ trung, sôi nổi, thích hợp review game, đồ chơi công nghệ, giải trí.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "manh_dung",
-        "name": "Mạnh Dũng (Nam miền Bắc)",
-        "gender": "Male",
-        "region": "Miền Bắc",
-        "description": "Giọng nam miền Bắc mạnh mẽ, dứt khoát, phong cách thể thao, truyền cảm hứng.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "mai_loan",
-        "name": "Mai Loan (Nữ miền Bắc)",
-        "gender": "Female",
-        "region": "Miền Bắc",
-        "description": "Giọng nữ miền Bắc chuẩn mực, chín chắn, thích hợp phóng sự tài liệu, tin tức chuyên sâu.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
-    {
-        "id": "am_adam",
-        "name": "Adam (Nam Trầm Ấm / TikTok)",
-        "gender": "Male",
-        "region": "Quốc Tế",
-        "description": "Giọng nam trầm ấm, uy lực kinh điển của Kokoro & TikTok, phù hợp video kể chuyện, review công nghệ cao cấp.",
-        "engine": "kokoro",
-        "is_default": False,
-    },
+
 
     # ── Gemini 2.5 Pro Preview TTS (Google Studio qua Kie.ai) ──
     # Giọng Nữ (14 giọng)
@@ -471,118 +354,13 @@ VOICES_PRESET: list[dict[str, Any]] = [
     },
 ]
 
-KOKORO_VOICE_IDS = {
-    v["id"] for v in VOICES_PRESET if v["engine"] == "kokoro"
-}
+KOKORO_VOICE_IDS: set[str] = set()
 
 GEMINI_VOICE_IDS = {
     v["id"] for v in VOICES_PRESET if v.get("engine") == "gemini"
 }
 
-OMNIVOICE_PRESETS: dict[str, dict[str, Any]] = {
-    str(v["id"]): v for v in VOICES_PRESET if v.get("engine") == "omnivoice"
-}
-
-
-class KokoroEngineManager:
-    """Quản lý singleton model Kokoro-Vietnamese để tái sử dụng và tiết kiệm RAM."""
-
-    def __init__(self) -> None:
-        self._tts: Any = None
-        self._cached_voicepacks: dict[str, Any] = {}
-        self._lock: threading.Lock = threading.Lock()
-
-    def _get_tts(self) -> Any:
-        if self._tts is None:
-            try:
-                from kokoro_vietnamese import KokoroVietnamese  # type: ignore
-
-                # Khởi tạo model base Kokoro trên CPU (hoặc MPS nếu có)
-                self._tts = KokoroVietnamese(device="cpu", voice="diem_trinh")
-            except Exception as e:  # noqa: BLE001
-                raise RuntimeError(f"[Kokoro] Không thể khởi tạo KokoroVietnamese: {e}")
-        return self._tts
-
-    def synthesize_to_file(
-        self,
-        text: str,
-        output_path: str,
-        voice_name: str = "diem_trinh",
-        speed: float = 1.0,
-    ) -> str:
-        """Tổng hợp âm thanh bằng Kokoro và lưu thành file WAV hoặc MP3."""
-        with self._lock:
-            try:
-                from kokoro_vietnamese.core import (  # type: ignore
-                    DEFAULT_HF_REPO_ID,  # type: ignore
-                    DEFAULT_VOICEPACK_FILE,  # type: ignore
-                    _download_or_resolve,  # type: ignore
-                    resolve_voicepack_filename,  # type: ignore
-                )
-            except Exception as e:  # noqa: BLE001
-                raise RuntimeError(f"[Kokoro] Thiếu core modules: {e}")
-
-            tts: Any = self._get_tts()
-            if tts is None:
-                raise RuntimeError("[Kokoro] TTS engine is not available")
-
-            # Nạp voicepack nếu chưa cache
-            if voice_name not in self._cached_voicepacks:
-                if voice_name == "am_adam":
-                    from huggingface_hub import hf_hub_download  # type: ignore
-
-                    pack_path = hf_hub_download(repo_id="hexgrad/Kokoro-82M", filename="voices/am_adam.pt")
-                else:
-                    filename = resolve_voicepack_filename(voice_name, None)
-                    pack_path = _download_or_resolve(DEFAULT_HF_REPO_ID, DEFAULT_VOICEPACK_FILE, filename)
-
-                if torch is not None:
-                    self._cached_voicepacks[voice_name] = torch.load(
-                        pack_path, map_location="cpu", weights_only=True
-                    )
-                else:
-                    raise RuntimeError("[Kokoro] torch is required to load voicepack")
-
-            tts.voicepack = self._cached_voicepacks[voice_name]
-            synthesize_fn: Any = getattr(tts, "synthesize")  # noqa: B009
-            audio, _ = synthesize_fn(text, speed=float(speed))
-
-            output_dir = os.path.dirname(output_path)
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-
-            if output_path.lower().endswith(".wav"):
-                if sf is not None:
-                    sf.write(output_path, audio, 24000)
-            else:
-                # Chuyển đổi sang MP3 chuẩn 192k qua FFmpeg
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                    tmp_wav = tmp.name
-                try:
-                    if sf is not None:
-                        sf.write(tmp_wav, audio, 24000)
-                    cmd = [
-                        "ffmpeg", "-y", "-i", tmp_wav,
-                        "-codec:a", "libmp3lame", "-b:a", "192k",
-                        output_path,
-                    ]
-                    res = subprocess.run(
-                        cmd,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.PIPE,
-                        check=False,
-                    )
-                    if res.returncode != 0:
-                        raise RuntimeError(f"FFmpeg MP3 conversion failed: {res.stderr.decode()}")
-                finally:
-                    if os.path.exists(tmp_wav):
-                        os.unlink(tmp_wav)
-
-            return output_path
-
-
-# Khởi tạo singleton manager
-_kokoro_manager = KokoroEngineManager()
+OMNIVOICE_PRESETS: dict[str, dict[str, Any]] = {}
 
 
 OMNIVOICE_FALLBACK_VOICES: dict[str, str] = {
@@ -594,12 +372,22 @@ OMNIVOICE_FALLBACK_VOICES: dict[str, str] = {
 
 
 def get_available_voices() -> list[dict[str, Any]]:
-    """Trả về danh sách tất cả giọng đọc tiếng Việt (Edge-TTS, Kokoro, OmniVoice, Custom)."""
+    """Trả về danh sách tất cả giọng đọc tiếng Việt (Gemini 2.5 Pro, Edge-TTS, VieNeu-TTS, Custom)."""
+    voices = list(VOICES_PRESET)
+
+    try:
+        from app.services.vieneu_tts_service import get_vieneu_preset_voices
+        voices += get_vieneu_preset_voices()
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"[VieNeu-TTS] Bỏ qua danh sách preset (chưa cài hoặc lỗi): {e}")
+
     try:
         from app.services.omnivoice_service import load_registry
-        return VOICES_PRESET + load_registry()
-    except (ImportError, Exception):  # noqa: BLE001
-        return VOICES_PRESET
+        voices += load_registry()
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"[Custom Voices] Không thể nạp registry: {e}")
+
+    return voices
 
 
 def format_rate_string(speed: float) -> str:
@@ -617,7 +405,7 @@ async def text_to_speech_file(
     voice: str = "vi-VN-HoaiMyNeural",
     speed: float = 1.0,
 ) -> str:
-    """Tạo file âm thanh MP3 từ văn bản tiếng Việt qua Edge-TTS, Kokoro hoặc OmniVoice AI."""
+    """Tạo file âm thanh MP3 từ văn bản tiếng Việt qua Gemini 2.5 Pro hoặc Edge-TTS."""
     if not text.strip():
         raise ValueError("Văn bản chuyển đổi giọng nói không được để trống")
 
@@ -656,18 +444,50 @@ async def text_to_speech_file(
             fallback_voice = "vi-VN-HoaiMyNeural" if is_female else "vi-VN-NamMinhNeural"
             return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
 
+    # 0.5. Nếu là giọng preset của VieNeu-TTS (offline, mã nguồn mở, hỗ trợ emotion cues)
+    if voice.startswith("vieneu_"):
+        try:
+            from app.services.vieneu_tts_service import _vieneu_manager, get_preset_voice_name_map
+            voice_name_map = get_preset_voice_name_map()
+            raw_voice_name = voice_name_map.get(voice)
+            if not raw_voice_name:
+                raise ValueError(f"Không tìm thấy giọng VieNeu-TTS preset: {voice}")
+            logger.info(f"🎙️ [VieNeu-TTS] Đang sinh audio giọng '{raw_voice_name}' cho: {text[:60]}...")
+            return await asyncio.to_thread(
+                _vieneu_manager.synthesize_to_file,
+                text=text,
+                output_path=output_path,
+                voice=raw_voice_name,
+                speed=speed,
+            )
+        except Exception as vieneu_err:
+            logger.warning(f"[VieNeu-TTS] Lỗi ({vieneu_err}), chuyển sang Edge-TTS dự phòng")
+            fallback_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
+            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
+
     # 1. Nếu là giọng tùy ý do người dùng nhân bản (Custom Voice Clone)
     if voice.startswith("custom_"):
         try:
-            from app.services.omnivoice_service import (
-                _omnivoice_manager,
-                get_custom_voice_by_id,
-            )
+            from app.services.omnivoice_service import get_custom_voice_by_id
             custom_voice = get_custom_voice_by_id(voice)
             if not custom_voice:
                 raise ValueError(f"Không tìm thấy thông tin giọng tùy ý: {voice}")
             ref_audio_val: str | None = str(custom_voice["ref_audio"]) if custom_voice.get("ref_audio") else None
             ref_text_val: str | None = str(custom_voice["ref_text"]) if custom_voice.get("ref_text") else None
+            custom_engine = str(custom_voice.get("engine") or "omnivoice")
+
+            if custom_engine == "vieneu":
+                from app.services.vieneu_tts_service import _vieneu_manager
+                logger.info(f"🎙️ [VieNeu-TTS Clone] Nhân bản giọng '{voice}' cho: {text[:60]}...")
+                return await asyncio.to_thread(
+                    _vieneu_manager.synthesize_to_file,
+                    text=text,
+                    output_path=output_path,
+                    ref_audio_path=ref_audio_val,
+                    speed=speed,
+                )
+
+            from app.services.omnivoice_service import _omnivoice_manager
             return await asyncio.to_thread(
                 _omnivoice_manager.synthesize_to_file,
                 text=text,
@@ -677,7 +497,7 @@ async def text_to_speech_file(
                 speed=speed,
             )
         except Exception as custom_err:
-            logger.warning(f"[Custom Voice] OmniVoice không khả dụng ({custom_err}), chuyển sang Edge-TTS")
+            logger.warning(f"[Custom Voice] Nhân bản giọng lỗi ({custom_err}), chuyển sang Edge-TTS")
             fallback_voice = "vi-VN-NamMinhNeural"
             return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
 
@@ -707,22 +527,7 @@ async def text_to_speech_file(
                 speed=speed,
             )
 
-    # 3. Nếu giọng đọc thuộc bộ Kokoro
-    if voice in KOKORO_VOICE_IDS:
-        try:
-            return await asyncio.to_thread(
-                _kokoro_manager.synthesize_to_file,
-                text=text,
-                output_path=output_path,
-                voice_name=voice,
-                speed=speed,
-            )
-        except Exception as kokoro_err:
-            logger.warning(f"[Kokoro] Lỗi ({kokoro_err}), fallback sang Edge-TTS")
-            fallback_voice = "vi-VN-NamMinhNeural" if voice in ("hung_thinh", "tuan_ngoc", "am_adam", "thanh_dat", "phat_tai", "duc_an", "manh_dung") else "vi-VN-HoaiMyNeural"
-            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
-
-    # 4. Mặc định sử dụng Edge-TTS (Microsoft Neural Studio Voice)
+    # 3. Mặc định sử dụng Edge-TTS (Microsoft Neural Studio Voice)
     if edge_tts is not None:
         rate_str = format_rate_string(speed)
         for attempt in range(3):
@@ -739,17 +544,10 @@ async def text_to_speech_file(
                 if attempt < 2:
                     await asyncio.sleep(0.35 * (attempt + 1))
                 else:
-                    logger.warning(f"[Edge-TTS] Lỗi sau 3 lần thử ({edge_err}), chuyển sang Kokoro dự phòng offline")
+                    logger.error(f"[Edge-TTS] Lỗi sau 3 lần thử ({edge_err})")
+                    raise RuntimeError(f"Chuyển đổi âm thanh Edge-TTS thất bại: {edge_err}")
 
-    # 5. Dự phòng cuối cùng bằng Kokoro offline nếu Edge-TTS mất mạng
-    kokoro_fallback = "hung_thinh" if "Nam" in voice or "nam" in voice else "diem_trinh"
-    return await asyncio.to_thread(
-        _kokoro_manager.synthesize_to_file,
-        text=text,
-        output_path=output_path,
-        voice_name=kokoro_fallback,
-        speed=speed,
-    )
+    raise RuntimeError("Không thể tổng hợp âm thanh giọng đọc.")
 
 
 async def get_or_create_voice_preview(voice_id: str) -> str:
@@ -895,11 +693,36 @@ async def synthesize_timeline_voiceover(
                     else:
                         available_slot_ms = orig_dur_ms + 1500
 
-                # 1. Điều chỉnh tốc độ từng câu thoại nếu câu tiếng Việt dài hơn khung hình cho phép
+                # 1. Kiểm tra độ lệch thời lượng giọng đọc so với khung hình start/end gốc của câu thoại.
+                # Ngưỡng co giãn tự nhiên cho phép: ±15%. Vượt ngưỡng này, ffmpeg atempo sẽ làm giọng
+                # nghe méo/gấp gáp bất thường -> chỉ CẢNH BÁO để sửa lại kịch bản, không ép giãn vô hạn.
+                if orig_dur_ms > 300:
+                    timing_deviation = (clip_len_ms / orig_dur_ms) - 1.0
+                    if abs(timing_deviation) > 0.15:
+                        seg["timing_warning"] = True
+                        seg["timing_deviation_pct"] = round(timing_deviation * 100, 1)
+                        logger.warning(
+                            f"[TTS Timing] Câu #{orig_idx} lệch {timing_deviation * 100:+.1f}% so với khung hình "
+                            f"gốc (giọng đọc: {clip_len_ms}ms / khung gốc: {orig_dur_ms}ms) — vượt ngưỡng ±15%. "
+                            f"Khuyến nghị viết lại/rút gọn câu thoại thay vì ép giãn giọng: "
+                            f"'{(seg.get('text_vi') or seg.get('text') or '')[:100]}'"
+                        )
+
+                # 2. Điều chỉnh tốc độ từng câu thoại nếu câu tiếng Việt dài hơn khung hình cho phép.
+                # Ưu tiên giữ độ co giãn trong ngưỡng tự nhiên ±15% (tối đa 1.15x); chỉ ép giãn thêm
+                # (tối đa 1.35x) khi thực sự cần để tránh chồng tiếng lên câu kế tiếp trên timeline.
                 if clip_len_ms > available_slot_ms:
-                    needed_speed = clip_len_ms / max(300, available_slot_ms)
-                    # Giới hạn tốc độ đọc tự nhiên trong khoảng 1.0 -> 1.35x
-                    needed_speed = min(1.35, max(1.0, needed_speed))
+                    needed_speed_for_slot = clip_len_ms / max(300, available_slot_ms)
+                    natural_cap = 1.15
+                    if needed_speed_for_slot > natural_cap:
+                        needed_speed = min(1.35, needed_speed_for_slot)
+                        logger.warning(
+                            f"[TTS Timing] Câu #{orig_idx} phải ép giãn giọng tới {needed_speed:.2f}x "
+                            f"(vượt ngưỡng tự nhiên {natural_cap}x) để tránh chồng tiếng với câu kế tiếp — "
+                            f"nên rút ngắn kịch bản cho câu này."
+                        )
+                    else:
+                        needed_speed = max(1.0, needed_speed_for_slot)
                     if needed_speed > 1.05:
                         speed_tmp = fpath + ".sp.mp3"
                         cmd_speed = [

@@ -709,7 +709,7 @@ export default function LocalizePresetsPage() {
                       <span>2. Giọng Đọc Lồng Tiếng (TTS AI)</span>
                     </label>
                     <span className="text-xs text-slate-400">
-                      Kho 30 giọng Google Gemini 2.5 Pro + Edge TTS + Kokoro, phát thử tức thì
+                      Kho 30 giọng Google Gemini 2.5 Pro + Edge TTS, phát thử tức thì
                     </span>
                   </div>
 
@@ -780,7 +780,7 @@ export default function LocalizePresetsPage() {
                       />
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
-                      {['all', 'gemini', 'edge-tts', 'kokoro'].map((eng) => (
+                      {['all', 'gemini', 'edge-tts'].map((eng) => (
                         <button
                           key={eng}
                           type="button"
@@ -795,7 +795,7 @@ export default function LocalizePresetsPage() {
                             ? 'Tất cả'
                             : eng === 'gemini'
                             ? 'Gemini 2.5 Pro (30 giọng)'
-                            : eng}
+                            : 'Edge-TTS (2 giọng)'}
                         </button>
                       ))}
                     </div>

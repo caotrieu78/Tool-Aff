@@ -290,9 +290,8 @@ async def delete_gemini_key(key_id: int, db: AsyncSession = Depends(get_db)):
 async def list_tts_voices():
     """
     Lấy danh sách tất cả giọng đọc:
+    - Gemini 2.5 Pro TTS (Google Cloud)
     - Edge-TTS (Microsoft Cloud)
-    - Kokoro-Vietnamese (Offline Open Source)
-    - OmniVoice Presets (AI Studio)
     - Custom Voices (Giọng do người dùng tạo)
     """
     voices = get_available_voices()

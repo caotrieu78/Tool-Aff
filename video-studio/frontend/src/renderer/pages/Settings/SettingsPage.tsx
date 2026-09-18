@@ -116,7 +116,7 @@ export default function SettingsPage() {
     return [];
   });
 
-  const [selectedEngine, setSelectedEngine] = useState<'all' | 'gemini' | 'custom' | 'kokoro' | 'edge-tts'>('all');
+  const [selectedEngine, setSelectedEngine] = useState<'all' | 'gemini' | 'custom' | 'edge-tts'>('all');
   const [selectedGender, setSelectedGender] = useState<'all' | 'Female' | 'Male'>('all');
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
@@ -131,6 +131,7 @@ export default function SettingsPage() {
   const [cloneAudioPreviewUrl, setCloneAudioPreviewUrl] = useState<string | null>(null);
   const [isCloning, setIsCloning] = useState(false);
   const [cloneAlert, setCloneAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
 
   // TikTok Channels State in Settings
   interface TikTokChannelConfig {
@@ -410,15 +411,15 @@ export default function SettingsPage() {
     localStorage.setItem('video_studio_enabled_voices', JSON.stringify(allIds));
   };
 
-  const handleEnableKokoroOnly = () => {
-    const kokoroIds = voices.filter((v) => v.engine === 'kokoro').map((v) => v.id);
-    if (kokoroIds.length === 0) return;
-    if (!kokoroIds.includes(selectedVoice)) {
-      setSelectedVoice(kokoroIds[0]);
-      localStorage.setItem('video_studio_default_voice', kokoroIds[0]);
+  const handleEnableEdgeTTSOnly = () => {
+    const edgeIds = voices.filter((v) => v.engine === 'edge-tts').map((v) => v.id);
+    if (edgeIds.length === 0) return;
+    if (!edgeIds.includes(selectedVoice)) {
+      setSelectedVoice(edgeIds[0]);
+      localStorage.setItem('video_studio_default_voice', edgeIds[0]);
     }
-    setEnabledVoiceIds(kokoroIds);
-    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(kokoroIds));
+    setEnabledVoiceIds(edgeIds);
+    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(edgeIds));
   };
 
   const handleEnableGeminiOnly = () => {
@@ -1129,17 +1130,6 @@ export default function SettingsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedEngine('kokoro')}
-                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
-                      selectedEngine === 'kokoro'
-                        ? 'bg-purple-600 text-white'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Kokoro ({voices.filter(v => v.engine === 'kokoro' && !v.is_custom).length})
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setSelectedEngine('edge-tts')}
                     className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'edge-tts'
@@ -1165,7 +1155,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* Gemini 2.5 Pro TTS Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'gemini' ? 'all' : 'gemini')}
@@ -1229,38 +1219,6 @@ export default function SettingsPage() {
                     <span className="font-semibold text-slate-400">2 giọng</span>
                   </div>
                 </div>
-
-                {/* Kokoro-Vietnamese Card */}
-                <div
-                  onClick={() => setSelectedEngine(selectedEngine === 'kokoro' ? 'all' : 'kokoro')}
-                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
-                    selectedEngine === 'kokoro'
-                      ? 'border-purple-500/80 bg-purple-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles size={13} className="text-purple-400" />
-                        Kokoro Local
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-semibold">
-                        Offline
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-normal">
-                      Mã nguồn mở chạy trực tiếp trên máy tính, đủ 3 miền.
-                    </p>
-                  </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-purple-300 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={12} />
-                      Local CPU
-                    </span>
-                    <span className="font-semibold text-slate-400">12 giọng</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1304,11 +1262,11 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleEnableKokoroOnly}
-                      className="px-2 py-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-600/30 transition cursor-pointer font-medium"
-                      title="Chỉ xuất các giọng Kokoro ra kho"
+                      onClick={handleEnableEdgeTTSOnly}
+                      className="px-2 py-1 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-600/30 transition cursor-pointer font-medium"
+                      title="Chỉ xuất các giọng Edge-TTS ra kho"
                     >
-                      Chỉ Kokoro
+                      Chỉ Edge-TTS
                     </button>
                   </div>
 
@@ -1356,8 +1314,9 @@ export default function SettingsPage() {
               {(() => {
                 const filtered = voices
                   .filter((v) => {
-                    // Loại bỏ hoàn toàn giọng OmniVoice mặc định
+                    // Loại bỏ hoàn toàn giọng OmniVoice và Kokoro mặc định
                     if (v.engine === 'omnivoice' && !v.is_custom) return false;
+                    if (v.engine === 'kokoro') return false;
                     if (selectedEngine === 'custom') return !!v.is_custom;
                     if (selectedEngine === 'gemini') return v.engine === 'gemini';
                     if (selectedEngine !== 'all') return v.engine === selectedEngine && !v.is_custom;
@@ -1397,8 +1356,6 @@ export default function SettingsPage() {
                               ? 'bg-gradient-to-br from-rose-500 to-pink-600 text-white'
                               : v.engine === 'gemini'
                               ? 'bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold'
-                              : v.engine === 'kokoro'
-                              ? 'bg-purple-600 hover:bg-purple-500 text-white'
                               : 'bg-indigo-600 hover:bg-indigo-500 text-white'
                           }`}
                           title={isPlaying ? 'Dừng phát' : 'Nghe thử mẫu giọng'}
@@ -1425,10 +1382,6 @@ export default function SettingsPage() {
                           ) : v.engine === 'gemini' ? (
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-amber-500/15 border-amber-500/30 text-amber-300">
                               Gemini
-                            </span>
-                          ) : v.engine === 'kokoro' ? (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-purple-500/10 border-purple-500/30 text-purple-300">
-                              Kokoro
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-indigo-500/10 border-indigo-500/30 text-indigo-300">
