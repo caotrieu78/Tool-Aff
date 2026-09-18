@@ -1394,7 +1394,7 @@ export default function LocalizeEditorPage() {
                   <span>Chọn Giọng Đọc Lồng Tiếng AI (TTS)</span>
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  Chọn giọng đọc phù hợp cho video: Kokoro Việt, Edge-TTS, OmniVoice hoặc Custom.
+                  Chọn giọng đọc phù hợp cho video: Kokoro Việt, Edge-TTS, Gemini Pro.
                 </p>
               </div>
               <button
@@ -1427,7 +1427,6 @@ export default function LocalizeEditorPage() {
                 <option value="gemini">Gemini 2.5 Pro TTS</option>
                 <option value="kokoro">Kokoro AI</option>
                 <option value="edge-tts">Edge-TTS (Microsoft)</option>
-                <option value="omnivoice">OmniVoice</option>
               </select>
             </div>
 

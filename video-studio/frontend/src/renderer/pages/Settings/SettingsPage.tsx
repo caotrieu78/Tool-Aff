@@ -116,7 +116,7 @@ export default function SettingsPage() {
     return [];
   });
 
-  const [selectedEngine, setSelectedEngine] = useState<'all' | 'gemini' | 'omnivoice' | 'custom' | 'kokoro' | 'edge-tts'>('all');
+  const [selectedEngine, setSelectedEngine] = useState<'all' | 'gemini' | 'custom' | 'kokoro' | 'edge-tts'>('all');
   const [selectedGender, setSelectedGender] = useState<'all' | 'Female' | 'Male'>('all');
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
@@ -410,15 +410,15 @@ export default function SettingsPage() {
     localStorage.setItem('video_studio_enabled_voices', JSON.stringify(allIds));
   };
 
-  const handleEnableOmniAndCustomOnly = () => {
-    const omniAndCustom = voices.filter((v) => v.engine === 'omnivoice' || v.is_custom).map((v) => v.id);
-    if (omniAndCustom.length === 0) return;
-    if (!omniAndCustom.includes(selectedVoice)) {
-      setSelectedVoice(omniAndCustom[0]);
-      localStorage.setItem('video_studio_default_voice', omniAndCustom[0]);
+  const handleEnableKokoroOnly = () => {
+    const kokoroIds = voices.filter((v) => v.engine === 'kokoro').map((v) => v.id);
+    if (kokoroIds.length === 0) return;
+    if (!kokoroIds.includes(selectedVoice)) {
+      setSelectedVoice(kokoroIds[0]);
+      localStorage.setItem('video_studio_default_voice', kokoroIds[0]);
     }
-    setEnabledVoiceIds(omniAndCustom);
-    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(omniAndCustom));
+    setEnabledVoiceIds(kokoroIds);
+    localStorage.setItem('video_studio_enabled_voices', JSON.stringify(kokoroIds));
   };
 
   const handleEnableGeminiOnly = () => {
@@ -1113,7 +1113,7 @@ export default function SettingsPage() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Tất cả ({voices.length})
+                    Tất cả ({voices.filter(v => v.engine !== 'omnivoice' || v.is_custom).length})
                   </button>
                   <button
                     type="button"
@@ -1126,28 +1126,6 @@ export default function SettingsPage() {
                   >
                     <Sparkles size={12} className={selectedEngine === 'gemini' ? 'text-slate-950' : 'text-amber-400'} />
                     <span>Gemini ({voices.filter(v => v.engine === 'gemini').length})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEngine('omnivoice')}
-                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
-                      selectedEngine === 'omnivoice'
-                        ? 'bg-emerald-600 text-white'
-                        : 'text-slate-400 hover:text-emerald-300'
-                    }`}
-                  >
-                    OmniVoice ({voices.filter(v => v.engine === 'omnivoice' && !v.is_custom).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedEngine('custom')}
-                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
-                      selectedEngine === 'custom'
-                        ? 'bg-rose-600 text-white'
-                        : 'text-slate-400 hover:text-rose-300'
-                    }`}
-                  >
-                    Của tôi ({voices.filter(v => v.is_custom).length})
                   </button>
                   <button
                     type="button"
@@ -1171,10 +1149,23 @@ export default function SettingsPage() {
                   >
                     Edge-TTS ({voices.filter(v => v.engine === 'edge-tts').length})
                   </button>
+                  {voices.some(v => v.is_custom) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngine('custom')}
+                      className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
+                        selectedEngine === 'custom'
+                          ? 'bg-rose-600 text-white'
+                          : 'text-slate-400 hover:text-rose-300'
+                      }`}
+                    >
+                      Của tôi ({voices.filter(v => v.is_custom).length})
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                 {/* Gemini 2.5 Pro TTS Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'gemini' ? 'all' : 'gemini')}
@@ -1270,38 +1261,6 @@ export default function SettingsPage() {
                     <span className="font-semibold text-slate-400">12 giọng</span>
                   </div>
                 </div>
-
-                {/* OmniVoice Card */}
-                <div
-                  onClick={() => setSelectedEngine(selectedEngine === 'omnivoice' ? 'all' : 'omnivoice')}
-                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
-                    selectedEngine === 'omnivoice'
-                      ? 'border-emerald-500/80 bg-emerald-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Mic size={13} className="text-emerald-400" />
-                        OmniVoice AI
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
-                        Zero-Shot
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-normal">
-                      Nhân bản giọng từ tệp thu âm và 4 giọng cao cấp.
-                    </p>
-                  </div>
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-emerald-300 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={12} />
-                      Local GPU
-                    </span>
-                    <span className="font-semibold text-slate-400">4 giọng + Clone</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1313,7 +1272,7 @@ export default function SettingsPage() {
                     <Mic size={16} className="text-rose-400" />
                     <span>Nhân Bản Giọng Nói (Voice Cloning)</span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-semibold">
-                      OmniVoice
+                      AI Clone Studio
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
@@ -1539,20 +1498,20 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={handleEnableOmniAndCustomOnly}
-                      className="px-2 py-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition cursor-pointer font-medium"
-                      title="Chỉ hiện các giọng OmniVoice và Giọng Nhân Bản"
-                    >
-                      Chỉ OmniVoice
-                    </button>
-                    <button
-                      type="button"
                       onClick={handleEnableGeminiOnly}
                       className="px-2 py-1 rounded-lg text-amber-300 hover:text-slate-950 hover:bg-amber-400 transition cursor-pointer font-medium flex items-center gap-1"
                       title="Chỉ xuất các giọng Google Gemini ra kho"
                     >
                       <Sparkles size={11} />
                       <span>Chỉ Gemini</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleEnableKokoroOnly}
+                      className="px-2 py-1 rounded-lg text-purple-300 hover:text-white hover:bg-purple-600/30 transition cursor-pointer font-medium"
+                      title="Chỉ xuất các giọng Kokoro ra kho"
+                    >
+                      Chỉ Kokoro
                     </button>
                   </div>
 
@@ -1600,8 +1559,9 @@ export default function SettingsPage() {
               {(() => {
                 const filtered = voices
                   .filter((v) => {
+                    // Loại bỏ hoàn toàn giọng OmniVoice mặc định
+                    if (v.engine === 'omnivoice' && !v.is_custom) return false;
                     if (selectedEngine === 'custom') return !!v.is_custom;
-                    if (selectedEngine === 'omnivoice') return v.engine === 'omnivoice' && !v.is_custom;
                     if (selectedEngine === 'gemini') return v.engine === 'gemini';
                     if (selectedEngine !== 'all') return v.engine === selectedEngine && !v.is_custom;
                     return true;
@@ -1640,8 +1600,6 @@ export default function SettingsPage() {
                               ? 'bg-gradient-to-br from-rose-500 to-pink-600 text-white'
                               : v.engine === 'gemini'
                               ? 'bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold'
-                              : v.engine === 'omnivoice'
-                              ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
                               : v.engine === 'kokoro'
                               ? 'bg-purple-600 hover:bg-purple-500 text-white'
                               : 'bg-indigo-600 hover:bg-indigo-500 text-white'
@@ -1670,10 +1628,6 @@ export default function SettingsPage() {
                           ) : v.engine === 'gemini' ? (
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-amber-500/15 border-amber-500/30 text-amber-300">
                               Gemini
-                            </span>
-                          ) : v.engine === 'omnivoice' ? (
-                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-emerald-500/15 border-emerald-500/30 text-emerald-300">
-                              OmniVoice
                             </span>
                           ) : v.engine === 'kokoro' ? (
                             <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-purple-500/10 border-purple-500/30 text-purple-300">

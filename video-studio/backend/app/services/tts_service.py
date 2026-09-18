@@ -165,47 +165,7 @@ VOICES_PRESET: list[dict[str, Any]] = [
         "engine": "kokoro",
         "is_default": False,
     },
-    # ── OmniVoice AI Presets (Diffusion LM / Zero-Shot Studio) ──
-    {
-        "id": "omni_nam_tram",
-        "name": "Nam Trầm Ấm Studio (OmniVoice AI)",
-        "gender": "Male",
-        "region": "Toàn Quốc",
-        "description": "Giọng nam trầm ấm, đĩnh đạc, chất lượng phòng thu Studio, phong cách kể chuyện và review sang trọng.",
-        "engine": "omnivoice",
-        "instruct": "male, low pitch, middle-aged",
-        "is_default": False,
-    },
-    {
-        "id": "omni_nu_truyen_cam",
-        "name": "Nữ Truyền Cảm Hứng (OmniVoice AI)",
-        "gender": "Female",
-        "region": "Toàn Quốc",
-        "description": "Giọng nữ truyền cảm hứng, sâu lắng, mượt mà, thích hợp video phong cách sống và bán hàng.",
-        "engine": "omnivoice",
-        "instruct": "female, moderate pitch, young adult",
-        "is_default": False,
-    },
-    {
-        "id": "omni_mc_chuyen_nghiep",
-        "name": "Nam MC Thời Sự (OmniVoice AI)",
-        "gender": "Male",
-        "region": "Toàn Quốc",
-        "description": "Giọng nam MC truyền hình, phát thanh viên chuyên nghiệp, dứt khoát và cuốn hút.",
-        "engine": "omnivoice",
-        "instruct": "male, moderate pitch, young adult",
-        "is_default": False,
-    },
-    {
-        "id": "omni_nu_nhe_nhang",
-        "name": "Nữ Nhẹ Nhàng Tự Nhiên (OmniVoice AI)",
-        "gender": "Female",
-        "region": "Toàn Quốc",
-        "description": "Giọng nữ nhẹ nhàng, trẻ trung, thân thiện và gần gũi, rất thích hợp video ngắn TikTok/Reels.",
-        "engine": "omnivoice",
-        "instruct": "female, high pitch, young adult",
-        "is_default": False,
-    },
+
     # ── Gemini 2.5 Pro Preview TTS (Google Studio qua Kie.ai) ──
     # Giọng Nữ (14 giọng)
     {
