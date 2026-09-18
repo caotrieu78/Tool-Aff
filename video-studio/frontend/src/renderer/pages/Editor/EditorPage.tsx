@@ -866,58 +866,58 @@ export default function EditorPage() {
           <div className="bg-[#141722] border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-lg space-y-4">
             
             {/* Header: Title + TikTok Safezone & Ratio toggle */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Smartphone size={14} className="text-violet-400" />
-                <span>Xem Trước Video</span>
+            <div className="flex items-center justify-between gap-1.5">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1 min-w-0">
+                <Smartphone size={13} className="text-violet-400 shrink-0" />
+                <span className="truncate">Xem trước</span>
                 {selectedVideo && (
-                  <span className="text-[10px] text-violet-400 font-mono font-normal">#{selectedVideo.id}</span>
+                  <span className="text-[10px] text-violet-400 font-mono font-normal shrink-0">#{selectedVideo.id}</span>
                 )}
               </h3>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setFitMode(fitMode === 'contain' ? 'cover' : 'contain')}
-                  className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border ${
+                  className={`px-2 py-1 text-[10.5px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
                     effectiveFit === 'object-contain'
                       ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
                       : 'bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/60'
                   }`}
                   title="Chế độ co giãn video: Giữ trọn 100% tỉ lệ video (không cắt xén) hoặc phóng to tràn viền"
                 >
-                  <Scaling size={11} />
-                  <span>{effectiveFit === 'object-contain' ? 'Full Đúng Tỉ Lệ' : 'Tràn Viền (Cắt)'}</span>
+                  <Scaling size={11} className="shrink-0" />
+                  <span>{effectiveFit === 'object-contain' ? 'Tỉ lệ gốc' : 'Tràn viền'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowSafeZone(!showSafeZone)}
-                  className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 ${
+                  className={`px-2 py-1 text-[10.5px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
                     showSafeZone
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/60'
                   }`}
                   title="Hiển thị vùng an toàn và các nút TikTok để căn phụ đề chuẩn xác"
                 >
-                  <Grid size={11} />
-                  <span>Vùng TikTok</span>
+                  <Grid size={11} className="shrink-0" />
+                  <span>TikTok</span>
                 </button>
               </div>
             </div>
 
             {/* Device Model Selector Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-1 bg-[#0c0e14] rounded-xl border border-slate-800/80 text-xs">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-[#0c0e14] rounded-xl border border-slate-800/80 text-[11px]">
               {[
-                { id: 'iphone16', label: 'iPhone 16' },
-                { id: 'iphone_notch', label: 'Tai Thỏ' },
-                { id: 'android_s24', label: 'Galaxy S24' },
-                { id: 'frameless', label: '9:16 Gốc' },
+                { id: 'iphone16', label: 'iPhone' },
+                { id: 'iphone_notch', label: 'Tai thỏ' },
+                { id: 'android_s24', label: 'Galaxy' },
+                { id: 'frameless', label: '9:16 gốc' },
               ].map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setPhoneMockup(m.id as any)}
-                  className={`py-1 rounded-lg font-medium transition cursor-pointer text-center truncate px-1 ${
+                  className={`py-1 rounded-lg font-medium transition cursor-pointer text-center whitespace-nowrap px-1 ${
                     phoneMockup === m.id
                       ? 'bg-violet-600 text-white shadow-sm font-semibold'
                       : 'text-slate-400 hover:text-white'

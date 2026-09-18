@@ -507,27 +507,27 @@ export default function LibraryPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <button
             onClick={() => setShowChannelModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700/60 transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/90 hover:bg-slate-700 hover:text-white border border-slate-700/60 transition whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
           >
-            <Tv size={14} className="text-indigo-400" />
-            Kênh Lưu Trữ ({channels.length})
+            <Tv size={13} className="text-indigo-400 shrink-0" />
+            <span>Kênh ({channels.length})</span>
           </button>
           <button
             onClick={() => setShowCategoryModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-700/60 transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/90 hover:bg-slate-700 hover:text-white border border-slate-700/60 transition whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
           >
-            <Tag size={14} className="text-emerald-400" />
-            Danh Mục ({categories.length})
+            <Tag size={13} className="text-emerald-400 shrink-0" />
+            <span>Danh mục ({categories.length})</span>
           </button>
           <button
             onClick={() => loadVideos()}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 transition cursor-pointer shrink-0"
             title="Làm mới"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-400' : ''} />
+            <RefreshCw size={13} className={loading ? 'animate-spin text-indigo-400' : ''} />
           </button>
           <button
             onClick={() => {
@@ -535,10 +535,10 @@ export default function LibraryPage() {
               setSelectedFiles([]);
               setShowImportModal(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 transition whitespace-nowrap shrink-0 cursor-pointer"
           >
-            <Upload size={14} />
-            Import hàng loạt
+            <Upload size={13} className="shrink-0" />
+            <span>Import video</span>
           </button>
         </div>
       </div>

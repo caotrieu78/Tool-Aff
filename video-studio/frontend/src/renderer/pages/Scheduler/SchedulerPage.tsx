@@ -849,45 +849,43 @@ export default function SchedulerPage() {
           </div>
 
           {/* THỐNG KÊ TỔNG QUAN */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center gap-2 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-semibold">{stats.total_ready}</span>
-              <span className="text-slate-400 text-[11px]">Video Thành Phẩm</span>
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="font-bold">{stats.total_ready}</span>
+              <span className="text-slate-400 text-[11px]">Thành phẩm</span>
             </div>
 
-            <div className="px-3 py-1.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 flex items-center gap-2 text-xs">
-              <Clock size={13} className="text-violet-400" />
-              <span className="font-semibold">{stats.total_scheduled}</span>
-              <span className="text-slate-400 text-[11px]">Lượt Đăng</span>
+            <div className="px-2.5 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0 shadow-sm">
+              <Clock size={12} className="text-violet-400 shrink-0" />
+              <span className="font-bold">{stats.total_scheduled}</span>
+              <span className="text-slate-400 text-[11px]">Lịch hẹn</span>
             </div>
 
             {/* Huy hiệu chế độ đăng ngầm */}
             <div
-              className="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center gap-1.5 text-xs font-medium shadow-sm"
+              className="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center gap-1.5 text-xs font-medium shadow-sm whitespace-nowrap shrink-0"
               title="Toàn bộ tác vụ xuất bản video TikTok được chạy ngầm trong nền, không mở cửa sổ làm gián đoạn màn hình"
             >
-              <ShieldCheck size={14} className="text-indigo-400" />
-              <span>Chạy ngầm (Headless)</span>
+              <ShieldCheck size={13} className="text-indigo-400 shrink-0" />
+              <span>Chạy ngầm</span>
             </div>
 
             <button
               type="button"
               onClick={loadData}
               disabled={loading}
-              className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-50"
+              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer disabled:opacity-50 shrink-0"
               title="Tải lại danh sách"
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={13} className={loading ? 'animate-spin text-violet-400' : ''} />
             </button>
           </div>
         </div>
 
-        {/* CÁC TAB CỦA CÁC KÊNH TIKTOK (THAY THẾ TOÀN BỘ CÁC TAB CŨ) */}
-        <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-800/60 overflow-x-auto">
-          <div className="flex items-center gap-1.5 p-1 bg-[#0a0c13] border border-slate-800/80 rounded-2xl shrink-0">
-
-
+        {/* CÁC TAB CỦA CÁC KÊNH TIKTOK */}
+        <div className="flex items-center justify-between gap-2.5 mt-3 pt-2.5 border-t border-slate-800/60 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 p-0.5 bg-[#0a0c13] border border-slate-800/80 rounded-xl shrink-0">
             {/* Các Tab Kênh TikTok Được Cấu Hình */}
             {channels.map((ch) => {
               const isSelected = selectedChannelId === ch.id;
@@ -901,13 +899,13 @@ export default function SchedulerPage() {
                     setSelectedVideoIds([]);
                     setChannelFilterStatus('all');
                   }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                     isSelected
                       ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
-                  <Tv size={14} className={isSelected ? 'text-white' : 'text-violet-400'} />
+                  <Tv size={13} className={isSelected ? 'text-white' : 'text-violet-400'} />
                   <span>{ch.name}</span>
                   {ch.username && (
                     <span className={`text-[10px] font-mono ${isSelected ? 'text-violet-200' : 'text-slate-500'}`}>
@@ -923,11 +921,11 @@ export default function SchedulerPage() {
           <button
             type="button"
             onClick={() => navigate("/settings")}
-            className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shrink-0"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
             title="Thêm hoặc cấu hình kênh TikTok trong Cài Đặt"
           >
-            <Sliders size={13} />
-            <span>Quản Lý Kênh</span>
+            <Sliders size={12} />
+            <span>Quản lý kênh</span>
           </button>
         </div>
 
@@ -975,15 +973,15 @@ export default function SchedulerPage() {
             )}
 
             {/* THANH ĐIỀU KHIỂN LỊCH ĐĂNG (NGÀY / TUẦN / THÁNG) */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 bg-[#111420] border border-slate-800 rounded-2xl shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:p-3 bg-[#111420] border border-slate-800 rounded-2xl shadow-sm">
               {/* Chọn quy mô: Ngày / Tuần / Tháng */}
-              <div className="flex items-center gap-1 p-1 bg-[#0a0c13] border border-slate-800 rounded-xl">
+              <div className="flex items-center gap-1 p-0.5 bg-[#0a0c13] border border-slate-800 rounded-xl shrink-0">
                 <button
                   type="button"
                   onClick={() => setCalendarScale('day')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                     calendarScale === 'day'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40'
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40 font-bold'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -992,9 +990,9 @@ export default function SchedulerPage() {
                 <button
                   type="button"
                   onClick={() => setCalendarScale('week')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                     calendarScale === 'week'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40'
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40 font-bold'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -1003,9 +1001,9 @@ export default function SchedulerPage() {
                 <button
                   type="button"
                   onClick={() => setCalendarScale('month')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                     calendarScale === 'month'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40'
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-950/40 font-bold'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
@@ -1014,32 +1012,32 @@ export default function SchedulerPage() {
               </div>
 
               {/* Điều hướng lịch & Nút Lên lịch */}
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="flex items-center gap-1.5 bg-[#0a0c13] border border-slate-800 p-1 rounded-xl text-xs">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <div className="flex items-center gap-1 bg-[#0a0c13] border border-slate-800 p-0.5 rounded-xl text-xs shrink-0">
                   <button
                     type="button"
                     onClick={navigateCalendarPrev}
-                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
                     title="Lùi lại"
                   >
-                    <ChevronLeft size={15} />
+                    <ChevronLeft size={14} />
                   </button>
                   <button
                     type="button"
                     onClick={navigateCalendarToday}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-violet-300 hover:text-white font-semibold transition cursor-pointer"
+                    className="px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-violet-300 hover:text-white font-medium transition cursor-pointer whitespace-nowrap"
                   >
-                    Hôm Nay
+                    Hôm nay
                   </button>
                   <button
                     type="button"
                     onClick={navigateCalendarNext}
-                    className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
                     title="Tiếp theo"
                   >
-                    <ChevronRight size={15} />
+                    <ChevronRight size={14} />
                   </button>
-                  <span className="px-3 font-bold text-white border-l border-slate-800/80 text-xs min-w-36 text-center">
+                  <span className="px-2.5 font-bold text-white border-l border-slate-800/80 text-xs text-center whitespace-nowrap">
                     {calendarPeriodLabel}
                   </span>
                 </div>
@@ -1047,11 +1045,11 @@ export default function SchedulerPage() {
                 <button
                   type="button"
                   onClick={() => handleOpenScheduleForDate(currentCalendarDate)}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-violet-950/40"
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-violet-950/40 whitespace-nowrap shrink-0"
                   title="Chọn video để lên lịch vào thời gian đang xem"
                 >
-                  <CalendarPlus size={14} />
-                  <span>Lên Lịch Video</span>
+                  <CalendarPlus size={13} className="shrink-0" />
+                  <span>Lên lịch video</span>
                 </button>
               </div>
             </div>

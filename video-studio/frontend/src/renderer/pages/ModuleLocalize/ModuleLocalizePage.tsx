@@ -734,14 +734,14 @@ export default function ModuleLocalizePage() {
       ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-6 lg:px-8 py-3.5 border-b border-slate-800/80 sticky top-0 bg-[#0d0f15]/95 backdrop-blur z-20">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-sm shrink-0">
             <Wand2 size={18} />
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-2">
-              <span>Studio Lồng Tiếng Video</span>
-              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                Full Studio v2.0
+              <span className="whitespace-nowrap">Studio Lồng Tiếng Video</span>
+              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
+                v2.0
               </span>
             </h1>
             <p className="text-[11px] text-slate-400">
@@ -751,16 +751,16 @@ export default function ModuleLocalizePage() {
         </div>
 
         {/* Right Actions: Manage Presets + Big Start Localize Button + Back */}
-        <div className="flex items-center gap-3">
-          {/* Nút Đi Tới Trang Quản Lý Cấu Hình Toàn Màn Hình */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {/* Nút Đi Tới Trang Quản Lý Cấu Hình */}
           <button
             type="button"
             onClick={() => navigate('/localize/presets')}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500/50 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+            className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500/50 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm whitespace-nowrap shrink-0"
             title="Đi tới trang Quản lý danh mục & Cấu hình toàn màn hình"
           >
-            <Settings size={14} className="text-indigo-400" />
-            <span>Quản lý Cấu hình</span>
+            <Settings size={13} className="text-indigo-400 shrink-0" />
+            <span>Cấu hình</span>
           </button>
 
           {/* Nút Bắt Đầu Lồng Tiếng */}
@@ -768,24 +768,24 @@ export default function ModuleLocalizePage() {
             type="button"
             onClick={handleStartBatchJob}
             disabled={isBatchRunning || (selectedVideoIds.size === 0 && !selectedVideo)}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 hover:from-indigo-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Wand2 size={15} />
+            <Wand2 size={14} className="shrink-0" />
             <span>
               {isBatchRunning
-                ? `Đang Lồng Tiếng... (${overallProgress}%)`
+                ? `Đang lồng tiếng (${overallProgress}%)`
                 : selectedVideoIds.size > 1
-                ? `Bắt Đầu Lồng Tiếng (${selectedVideoIds.size} video)`
-                : `Bắt Đầu Lồng Tiếng (1 video)`}
+                ? `Lồng tiếng (${selectedVideoIds.size} video)`
+                : `Lồng tiếng (1 video)`}
             </span>
           </button>
 
           {/* Back to library */}
           <button
             onClick={() => navigate('/library')}
-            className="px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition cursor-pointer"
+            className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition cursor-pointer whitespace-nowrap shrink-0"
           >
-            ← Quay lại Thư Viện
+            ← Quay lại
           </button>
         </div>
       </div>
@@ -800,58 +800,58 @@ export default function ModuleLocalizePage() {
         <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 space-y-3 lg:sticky lg:top-20">
           <div className="bg-[#141722] border border-slate-800 rounded-3xl p-3.5 sm:p-4 shadow-lg space-y-3">
             {/* Header: Title + TikTok Safezone toggle */}
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Smartphone size={14} className="text-indigo-400" />
-                <span>Xem Trước Video Cỡ Lớn</span>
+            <div className="flex items-center justify-between gap-1.5">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1 min-w-0">
+                <Smartphone size={13} className="text-indigo-400 shrink-0" />
+                <span className="truncate">Xem trước</span>
                 {selectedVideo && (
-                  <span className="text-[10px] text-indigo-400 font-mono font-normal">#{selectedVideo.id}</span>
+                  <span className="text-[10px] text-indigo-400 font-mono font-normal shrink-0">#{selectedVideo.id}</span>
                 )}
               </h3>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => setFitMode(fitMode === 'contain' ? 'cover' : 'contain')}
-                  className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border ${
+                  className={`px-2 py-1 text-[10.5px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
                     effectiveFit === 'object-contain'
                       ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
                       : 'bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/60'
                   }`}
                   title="Chế độ co giãn video: Giữ trọn 100% tỉ lệ video (không cắt xén) hoặc phóng to tràn viền"
                 >
-                  <Scaling size={11} />
-                  <span>{effectiveFit === 'object-contain' ? 'Full Đúng Tỉ Lệ' : 'Tràn Viền (Cắt)'}</span>
+                  <Scaling size={11} className="shrink-0" />
+                  <span>{effectiveFit === 'object-contain' ? 'Tỉ lệ gốc' : 'Tràn viền'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowSafeZone(!showSafeZone)}
-                  className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 ${
+                  className={`px-2 py-1 text-[10.5px] rounded-lg font-medium transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
                     showSafeZone
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-slate-800/80 text-slate-400 hover:text-white border border-slate-700/60'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white border-slate-700/60'
                   }`}
                   title="Hiển thị vùng an toàn và các nút TikTok để căn phụ đề chuẩn xác"
                 >
-                  <Grid size={11} />
-                  <span>Vùng TikTok</span>
+                  <Grid size={11} className="shrink-0" />
+                  <span>TikTok</span>
                 </button>
               </div>
             </div>
 
             {/* Device Model Selector Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-1 bg-[#0c0e14] rounded-xl border border-slate-800/80 text-xs">
+            <div className="grid grid-cols-4 gap-1 p-1 bg-[#0c0e14] rounded-xl border border-slate-800/80 text-[11px]">
               {[
-                { id: 'iphone16', label: 'iPhone 16' },
-                { id: 'iphone_notch', label: 'Tai Thỏ' },
-                { id: 'android_s24', label: 'Galaxy S24' },
-                { id: 'frameless', label: '9:16 Gốc' },
+                { id: 'iphone16', label: 'iPhone' },
+                { id: 'iphone_notch', label: 'Tai thỏ' },
+                { id: 'android_s24', label: 'Galaxy' },
+                { id: 'frameless', label: '9:16 gốc' },
               ].map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setPhoneMockup(m.id as any)}
-                  className={`py-1 rounded-lg font-medium transition cursor-pointer text-center truncate px-1 ${
+                  className={`py-1 rounded-lg font-medium transition cursor-pointer text-center whitespace-nowrap px-1 ${
                     phoneMockup === m.id
                       ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                       : 'text-slate-400 hover:text-white'
@@ -1144,9 +1144,9 @@ export default function ModuleLocalizePage() {
             </div>
 
             {/* Filter Bar: Search + Channel + Category + Trạng thái Lồng tiếng */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-2.5">
               {/* Search */}
-              <div className="sm:col-span-4 relative">
+              <div className="sm:col-span-2 xl:col-span-4 relative">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
@@ -1158,7 +1158,7 @@ export default function ModuleLocalizePage() {
               </div>
 
               {/* Channel filter */}
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-1 xl:col-span-3">
                 <select
                   value={selectedChannel}
                   onChange={(e) => setSelectedChannel(e.target.value)}
@@ -1174,7 +1174,7 @@ export default function ModuleLocalizePage() {
               </div>
 
               {/* Category filter */}
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-1 xl:col-span-2">
                 <select
                   value={selectedLibraryCategory}
                   onChange={(e) => setSelectedLibraryCategory(e.target.value)}
@@ -1190,7 +1190,7 @@ export default function ModuleLocalizePage() {
               </div>
 
               {/* Trạng thái lồng tiếng filter (Custom Dropdown chuẩn icon vector) */}
-              <div ref={statusDropdownRef} className="sm:col-span-3 relative">
+              <div ref={statusDropdownRef} className="sm:col-span-2 xl:col-span-3 relative">
                 {(() => {
                   const unlocalizedCount = videos.filter((v) => !v.has_localized).length;
                   const localizedCount = videos.filter((v) => v.has_localized).length;
@@ -1258,22 +1258,15 @@ export default function ModuleLocalizePage() {
                                 }}
                                 className={`w-full px-2.5 py-2 text-xs rounded-lg transition flex items-center justify-between gap-2 text-left cursor-pointer ${
                                   isSelected
-                                    ? 'bg-indigo-600/25 text-indigo-200 font-semibold'
+                                    ? 'bg-indigo-600/20 text-indigo-300 font-semibold'
                                     : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 truncate">
+                                <div className="flex items-center gap-2">
                                   {opt.icon}
-                                  <span className="truncate">{opt.label}</span>
-                                  <span
-                                    className={`text-[11px] font-mono ${
-                                      isSelected ? 'text-indigo-300' : 'text-slate-500'
-                                    }`}
-                                  >
-                                    ({opt.count})
-                                  </span>
+                                  <span>{opt.label}</span>
                                 </div>
-                                {isSelected && <Check size={13} className="text-indigo-400 shrink-0" />}
+                                <span className="text-[11px] text-slate-400 font-mono">({opt.count})</span>
                               </button>
                             );
                           })}
@@ -1286,14 +1279,14 @@ export default function ModuleLocalizePage() {
             </div>
 
             {/* Multi-Selection Control Bar */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs flex-wrap gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   type="button"
                   onClick={handleSelectAllVideos}
-                  className="text-slate-400 hover:text-indigo-400 font-medium transition cursor-pointer flex items-center gap-1"
+                  className="text-slate-400 hover:text-indigo-400 font-medium transition cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0"
                 >
-                  <CheckSquare size={13} />
+                  <CheckSquare size={13} className="shrink-0" />
                   <span>Chọn tất cả ({filteredVideos.length})</span>
                 </button>
                 {selectedVideoIds.size > 0 && (
@@ -1301,13 +1294,13 @@ export default function ModuleLocalizePage() {
                     <button
                       type="button"
                       onClick={handleDeselectAllVideos}
-                      className="text-slate-500 hover:text-slate-300 font-medium transition cursor-pointer"
+                      className="text-slate-500 hover:text-slate-300 font-medium transition cursor-pointer whitespace-nowrap shrink-0"
                     >
                       Bỏ chọn ({selectedVideoIds.size})
                     </button>
                     <span className="text-slate-700">|</span>
-                    <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-xl">
-                      <span className="text-indigo-300 text-[11px] font-medium">Gán nhanh:</span>
+                    <div className="flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-500/30 px-2.5 py-1 rounded-xl flex-wrap">
+                      <span className="text-indigo-300 text-[11px] font-medium whitespace-nowrap">Gán nhanh:</span>
                       <select
                         value={batchPresetId || presets.find((p) => p.is_default)?.id || presets[0]?.id || ''}
                         onChange={(e) => setBatchPresetId(Number(e.target.value))}
@@ -1330,7 +1323,7 @@ export default function ModuleLocalizePage() {
                           });
                           setVideoPresetMap(nextMap);
                         }}
-                        className="px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold transition shadow cursor-pointer"
+                        className="px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold transition shadow cursor-pointer whitespace-nowrap shrink-0"
                         title="Gán cấu hình đã chọn cho tất cả video được đánh dấu"
                       >
                         Áp dụng
@@ -1340,7 +1333,7 @@ export default function ModuleLocalizePage() {
                 )}
               </div>
 
-              <div className="text-slate-400 font-mono text-[11px]">
+              <div className="text-slate-400 font-mono text-[11px] whitespace-nowrap shrink-0">
                 Đã chọn:{' '}
                 <span className="font-bold text-indigo-400 text-xs">{selectedVideoIds.size}</span> video
               </div>
@@ -1389,7 +1382,7 @@ export default function ModuleLocalizePage() {
                       </div>
 
                       {/* Cột 2: Ảnh Preview Thumbnail sắc nét */}
-                      <div className="relative w-28 sm:w-36 aspect-[16/9] rounded-xl overflow-hidden bg-black border border-slate-800/90 shrink-0 group/thumb">
+                      <div className="relative w-24 sm:w-32 aspect-[16/9] rounded-xl overflow-hidden bg-black border border-slate-800/90 shrink-0 group/thumb">
                         {video.thumbnail_url ? (
                           <img
                             src={libraryApi.getMediaUrl(video.thumbnail_url)}
@@ -1437,28 +1430,28 @@ export default function ModuleLocalizePage() {
                           <span className="truncate max-w-[140px] text-slate-400 font-medium">
                             {channels.find((c) => c.id === video.channel_id)?.name || 'Kênh mặc định'}
                           </span>
-                          <span className="text-slate-600">•</span>
+                          <span className="text-slate-600 shrink-0">•</span>
                           {video.has_localized ? (
-                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
-                              <Mic size={10} className="text-emerald-400" />
+                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+                              <Mic size={10} className="text-emerald-400 shrink-0" />
                               <span>Đã Lồng Tiếng</span>
                             </span>
                           ) : video.status === 'done' ? (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0">
                               Đã Dịch (Chưa lồng tiếng)
                             </span>
                           ) : (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
+                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap shrink-0">
                               Gốc
                             </span>
                           )}
-                          <span className="text-slate-600">•</span>
-                          <span className="text-[10px] text-slate-500 font-mono">STT: {idx + 1}</span>
+                          <span className="text-slate-600 shrink-0">•</span>
+                          <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap shrink-0">STT: {idx + 1}</span>
                         </div>
                       </div>
 
                       {/* Cột 4: Chọn Cấu Hình (Chỉ hiển thị khi video được tick chọn) */}
-                      <div className="w-52 sm:w-64 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="w-44 sm:w-56 shrink-0" onClick={(e) => e.stopPropagation()}>
                         {isChecked ? (() => {
                           const currentPresetId = videoPresetMap[video.id] || presets.find((p) => p.is_default)?.id || presets[0]?.id;
                           const currentPreset = presets.find((p) => p.id === currentPresetId);
@@ -1466,8 +1459,8 @@ export default function ModuleLocalizePage() {
 
                           return (
                             <div className="space-y-1 animate-in fade-in duration-150 relative">
-                              <div className="flex items-center gap-1 text-[10px] font-semibold text-indigo-300">
-                                <SlidersHorizontal size={11} className="text-indigo-400" />
+                              <div className="flex items-center gap-1 text-[10px] font-semibold text-indigo-300 whitespace-nowrap">
+                                <SlidersHorizontal size={11} className="text-indigo-400 shrink-0" />
                                 <span>Cấu hình:</span>
                               </div>
                               {/* Custom dropdown trigger */}
@@ -1499,24 +1492,24 @@ export default function ModuleLocalizePage() {
                                     <button
                                       key={p.id}
                                       type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         setVideoPresetMap((prev) => ({ ...prev, [video.id]: p.id }));
-                                        document.getElementById(dropdownId)?.classList.add('hidden');
+                                        const el = document.getElementById(dropdownId);
+                                        if (el) el.classList.add('hidden');
                                       }}
-                                      className={`w-full text-left px-3 py-2.5 flex flex-col gap-1 transition cursor-pointer border-b border-slate-800/60 last:border-b-0 ${
+                                      className={`w-full p-2.5 text-left transition flex flex-col gap-1 cursor-pointer border-b border-slate-800/60 last:border-0 ${
                                         isActive
-                                          ? 'bg-indigo-600/20 border-l-2 border-l-indigo-500'
-                                          : 'hover:bg-slate-800/60 border-l-2 border-l-transparent'
+                                          ? 'bg-indigo-600/25 text-white'
+                                          : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'
                                       }`}
                                     >
-                                      <div className="flex items-center gap-2">
-                                        {isActive && <Check size={12} className="text-indigo-400 shrink-0" />}
-                                        <span className={`text-xs font-bold truncate ${isActive ? 'text-indigo-200' : 'text-slate-200'}`}>
-                                          {p.name}
-                                        </span>
-                                        {p.is_default && (
-                                          <span className="text-amber-400 text-[9px] shrink-0">⭐</span>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                                          {p.is_default && <span className="text-amber-400 text-[10px]">⭐</span>}
+                                          <span className="truncate">{p.name}</span>
+                                        </div>
+                                        {isActive && (
+                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
                                         )}
                                       </div>
                                       {/* Config summary tags */}
@@ -1544,8 +1537,8 @@ export default function ModuleLocalizePage() {
                             </div>
                           );
                         })() : (
-                          <div className="text-right sm:text-center text-[11px] text-slate-500 italic py-1">
-                            (Tick chọn để gán cấu hình)
+                          <div className="text-right sm:text-center text-[10.5px] text-slate-500/70 italic py-1 whitespace-nowrap">
+                            (Tick để gán cấu hình)
                           </div>
                         )}
                       </div>
