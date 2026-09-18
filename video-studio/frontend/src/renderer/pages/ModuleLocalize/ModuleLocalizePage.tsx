@@ -494,9 +494,13 @@ export default function ModuleLocalizePage() {
 
           // Helper cập nhật tiến độ tổng thể mượt mà từ tiến độ của video hiện tại
           const updateProgress = (curItemPercent: number) => {
-            const clamped = Math.max(0, Math.min(100, curItemPercent));
-            const total = Math.min(99, Math.round((i * 100 + clamped) / initialQueue.length));
-            setOverallProgress((prev) => Math.max(prev, total));
+            const clamped = Math.max(0, Math.min(100, Math.round(curItemPercent)));
+            if (initialQueue.length <= 1) {
+              setOverallProgress(clamped);
+            } else {
+              const total = Math.min(99, Math.round((i * 100 + clamped) / initialQueue.length));
+              setOverallProgress((prev) => Math.max(prev, total));
+            }
           };
 
           const finishItem = (status: 'done' | 'error', finalMsg: string, outUrl?: string, err?: string) => {
@@ -530,7 +534,11 @@ export default function ModuleLocalizePage() {
             }
 
             const completedCount = i + 1;
-            setOverallProgress(Math.round((completedCount / initialQueue.length) * 100));
+            setOverallProgress(
+              completedCount === initialQueue.length
+                ? 100
+                : Math.round((completedCount / initialQueue.length) * 100)
+            );
             resolve();
           };
 
@@ -541,9 +549,9 @@ export default function ModuleLocalizePage() {
           try {
             connectJobWs(res.job_id, (data) => {
               if (data.percent !== undefined) {
-                const p = Math.max(0, Math.min(100, data.percent));
+                const p = Math.max(0, Math.min(100, Math.round(data.percent)));
                 setBatchQueue((prev) =>
-                  prev.map((item, idx) => (idx === i ? { ...item, percent: p } : item))
+                  prev.map((item, idx) => (idx === i ? { ...item, percent: Math.max(item.percent, p) } : item))
                 );
                 updateProgress(p);
               }
@@ -573,10 +581,10 @@ export default function ModuleLocalizePage() {
             try {
               const statusRes = await localizeApi.getStatus(res.job_id);
               if (statusRes.progress_percent !== undefined) {
-                const p = Math.max(0, Math.min(100, statusRes.progress_percent));
+                const p = Math.max(0, Math.min(100, Math.round(statusRes.progress_percent)));
                 setBatchQueue((prev) =>
                   prev.map((item, idx) =>
-                    idx === i ? { ...item, percent: p } : item
+                    idx === i ? { ...item, percent: Math.max(item.percent, p) } : item
                   )
                 );
                 updateProgress(p);
@@ -1514,19 +1522,19 @@ export default function ModuleLocalizePage() {
                                       </div>
                                       {/* Config summary tags */}
                                       <div className="flex items-center gap-1.5 flex-wrap">
-                                        {pSettings.voice_id && (
+                                        {(pSettings.voice_id || pSettings.voiceId) && (
                                           <span className="px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[8px] font-medium">
-                                            🎙 {pSettings.voice_id}
+                                            🎙 {pSettings.voice_id || pSettings.voiceId}
                                           </span>
                                         )}
-                                        {pSettings.sub_font && (
+                                        {(pSettings.sub_font || pSettings.subFont) && (
                                           <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/20 text-[8px] font-medium">
-                                            𝑇 {pSettings.sub_font}{pSettings.sub_font_size ? ` (${pSettings.sub_font_size}px)` : ''}
+                                            𝑇 {pSettings.sub_font || pSettings.subFont}{(pSettings.sub_font_size || pSettings.subFontSize) ? ` (${pSettings.sub_font_size || pSettings.subFontSize}px)` : ''}
                                           </span>
                                         )}
-                                        {pSettings.ai_style && (
+                                        {(pSettings.ai_style || pSettings.aiStyle) && (
                                           <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[8px] font-medium">
-                                            ✨ {pSettings.ai_style}
+                                            ✨ {pSettings.ai_style || pSettings.aiStyle}
                                           </span>
                                         )}
                                       </div>
@@ -1708,7 +1716,9 @@ export default function ModuleLocalizePage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-mono font-bold text-indigo-400">
-                    Tổng tiến độ: {overallProgress}%
+                    {batchQueue.length > 1
+                      ? `Tổng tiến độ (${batchQueue.filter((b) => b.status === 'done').length}/${batchQueue.length} video): ${overallProgress}%`
+                      : `Tổng tiến độ: ${overallProgress}%`}
                   </span>
                 </div>
               </div>
@@ -1895,9 +1905,9 @@ export default function ModuleLocalizePage() {
                           </span>
                         )}
                         {item.status === 'running' && (
-                          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10.5px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10.5px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40" title="Tiến độ xử lý video này">
                             <RefreshCw size={11} className="animate-spin text-indigo-400" />
-                            <span>{item.percent}%</span>
+                            <span>{batchQueue.length > 1 ? `Video này: ${item.percent}%` : `${item.percent}%`}</span>
                           </span>
                         )}
                         {item.status === 'done' && (

@@ -8,6 +8,11 @@ router = APIRouter()
 
 # Active WebSocket connections for job progress
 _connections: dict[int, list[WebSocket]] = {}
+_latest_job_progress: dict[int, dict] = {}
+
+
+def get_latest_job_progress(job_id: int) -> dict | None:
+    return _latest_job_progress.get(job_id)
 
 
 @router.websocket("/ws/{job_id}")
@@ -26,6 +31,7 @@ async def job_progress_ws(websocket: WebSocket, job_id: int):
 
 async def broadcast_progress(job_id: int, data: dict):
     """Gọi từ job runner để push progress tới tất cả client đang xem job này."""
+    _latest_job_progress[job_id] = data
     if job_id in _connections:
         dead = []
         for ws in _connections[job_id]:

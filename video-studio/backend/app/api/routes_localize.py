@@ -144,13 +144,20 @@ async def get_job_status(job_id: int, db: AsyncSession = Depends(get_db)):
     config = j.config_json or {}
     created_str = j.created_at.isoformat() if getattr(j, "created_at", None) is not None else None
     finished_str = j.finished_at.isoformat() if getattr(j, "finished_at", None) is not None else None
+
+    from app.api.routes_jobs import get_latest_job_progress
+    latest = get_latest_job_progress(int(j.id))
+    cur_p = j.progress_percent
+    if latest and latest.get("percent") is not None:
+        cur_p = max(float(cur_p or 0.0), float(latest["percent"]))
+
     return {
         "job_id": int(j.id),
         "video_id": int(j.video_id) if getattr(j, "video_id", None) is not None else None,
         "module": j.module.value if hasattr(j.module, "value") else str(j.module),
         "current_step": j.current_step.value if hasattr(j.current_step, "value") else str(j.current_step),
         "status": j.status.value if hasattr(j.status, "value") else str(j.status),
-        "progress_percent": j.progress_percent,
+        "progress_percent": cur_p,
         "error_log": j.error_log,
         "output_url": config.get("output_url"),
         "created_at": created_str,
