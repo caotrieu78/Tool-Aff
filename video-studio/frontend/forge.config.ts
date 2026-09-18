@@ -6,17 +6,24 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import path from 'node:path';
+
+const backendDistPath = path.join(__dirname, '..', 'backend', 'dist', 'video_studio_backend');
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './public/icon',
     name: 'Video Studio',
+    extraResource: [
+      backendDistPath,
+    ],
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
       setupIcon: './public/icon.ico',
+      name: 'VideoStudio',
     }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),

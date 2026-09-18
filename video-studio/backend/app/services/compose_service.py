@@ -9,6 +9,31 @@ from PIL import Image, ImageDraw, ImageFont
 logger = logging.getLogger(__name__)
 
 
+def build_atempo_chain(tempo: float) -> str:
+    """
+    Xây dựng chuỗi filter ffmpeg atempo cho MỌI hệ số tempo bất kỳ (không giới hạn ở 4x như trước).
+    Bộ lọc atempo của ffmpeg chỉ nhận hệ số hợp lệ trong khoảng [0.5, 2.0] cho MỖI lần áp dụng, nên với
+    video dài/kịch bản dịch dài hơn nhiều so với video gốc (hệ số > 4x), cần ghép nhiều atempo liên tiếp.
+    Trả về chuỗi filter kết thúc bằng dấu phẩy, vd "atempo=2.0,atempo=2.0,atempo=1.3125,".
+    """
+    tempo = max(0.25, min(40.0, float(tempo)))
+    if abs(tempo - 1.0) < 0.01:
+        return ""
+
+    parts: List[str] = []
+    remaining = tempo
+    # Hệ số > 1.0 (tăng tốc / nén ngắn lại): tách dần thành các bước tối đa 2.0x
+    while remaining > 2.0:
+        parts.append("atempo=2.0")
+        remaining /= 2.0
+    # Hệ số < 1.0 (giảm tốc / kéo dài ra): tách dần thành các bước tối thiểu 0.5x
+    while remaining < 0.5:
+        parts.append("atempo=0.5")
+        remaining /= 0.5
+    parts.append(f"atempo={remaining:.5f}")
+    return ",".join(parts) + ","
+
+
 def format_srt_time(seconds: float) -> str:
     """Chuyển số giây float sang định dạng SRT timestamp: HH:MM:SS,mmm"""
     hours = int(seconds // 3600)
@@ -650,7 +675,7 @@ def compose_localized_video(
         if stretch <= 1.25:
             filter_chains.append(f"{current_v}setpts={stretch:.5f}*PTS[v_stretched]")
             current_v = "[v_stretched]"
-            bgm_tempo = f"atempo={1.0 / stretch:.5f},"
+            bgm_tempo = build_atempo_chain(1.0 / stretch)
         else:
             pad_sec = a_dur - (v_dur * 1.20)
             filter_chains.append(
@@ -682,12 +707,11 @@ def compose_localized_video(
 
         if has_voiceover:
             if v_dur > 0 and a_dur > v_dur:
-                # Cần time-stretch audio vừa khít độ dài video gốc mà không đổi cao độ
+                # Cần time-stretch audio vừa khít độ dài video gốc mà không đổi cao độ.
+                # Dùng build_atempo_chain thay vì chỉ chain tối đa 2 bước (giới hạn cũ ~4x) để vẫn xử lý
+                # được đúng khi kịch bản dịch dài hơn nhiều lần video gốc (hay gặp hơn với video dài).
                 tempo = a_dur / v_dur
-                if tempo > 2.0:
-                    tempo_str = f"atempo=2.0,atempo={tempo / 2.0:.4f},"
-                else:
-                    tempo_str = f"atempo={tempo:.4f},"
+                tempo_str = build_atempo_chain(tempo)
             else:
                 tempo_str = ""
 

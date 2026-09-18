@@ -359,8 +359,14 @@ GEMINI_VOICE_IDS = {
 }
 
 def get_available_voices() -> list[dict[str, Any]]:
-    """Trả về danh sách tất cả giọng đọc tiếng Việt (Gemini 2.5 Pro, Edge-TTS)."""
-    return list(VOICES_PRESET)
+    """Trả về danh sách tất cả giọng đọc tiếng Việt (Gemini 2.5 Pro, Edge-TTS, VieNeu-TTS)."""
+    voices = list(VOICES_PRESET)
+    try:
+        from app.services.vieneu_tts_service import get_vieneu_preset_voices
+        voices += get_vieneu_preset_voices()
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"[VieNeu-TTS] Bỏ qua danh sách preset (chưa cài hoặc lỗi): {e}")
+    return voices
 
 
 def format_rate_string(speed: float) -> str:
@@ -415,6 +421,25 @@ async def text_to_speech_file(
                 "vindemiatrix", "zephyr"
             ))
             fallback_voice = "vi-VN-HoaiMyNeural" if is_female else "vi-VN-NamMinhNeural"
+            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
+
+    # 0.5. Nếu là giọng preset của VieNeu-TTS (offline, mã nguồn mở, hỗ trợ emotion cues)
+    if voice.startswith("vieneu_"):
+        try:
+            from app.services.vieneu_tts_service import _vieneu_manager, get_preset_voice_name_map
+            raw_voice_name = get_preset_voice_name_map().get(voice)
+            if not raw_voice_name:
+                raise ValueError(f"Không tìm thấy giọng VieNeu-TTS preset: {voice}")
+            return await asyncio.to_thread(
+                _vieneu_manager.synthesize_to_file,
+                text=text,
+                output_path=output_path,
+                voice=raw_voice_name,
+                speed=speed,
+            )
+        except Exception as vieneu_err:
+            logger.warning(f"[VieNeu-TTS] Lỗi ({vieneu_err}), chuyển sang Edge-TTS dự phòng")
+            fallback_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
             return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
 
     # 1. Mặc định sử dụng Edge-TTS (Microsoft Neural Studio Voice)

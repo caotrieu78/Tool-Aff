@@ -1,0 +1,152 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: false
+        default: 'manual'
+
+permissions:
+  contents: write
+
+jobs:
+  # ─── macOS Build ────────────────────────────────────────────
+  build-macos:
+    name: Build macOS (.zip)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend Python deps
+        working-directory: video-studio/backend
+        run: |
+          python -m venv venv
+          venv/bin/pip install --upgrade pip
+          venv/bin/pip install -r requirements.txt
+          venv/bin/pip install pyinstaller
+
+      - name: Build backend with PyInstaller
+        working-directory: video-studio/backend
+        run: |
+          venv/bin/pyinstaller --clean --noconfirm video_studio.spec
+
+      - name: Install frontend Node deps
+        working-directory: video-studio/frontend
+        run: npm install
+
+      - name: Build Electron app (macOS)
+        working-directory: video-studio/frontend
+        run: npm run make -- --platform darwin
+        env:
+          NODE_ENV: production
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoStudio-macOS
+          path: video-studio/frontend/out/make/zip/darwin/
+          retention-days: 30
+
+  # ─── Windows Build ──────────────────────────────────────────
+  build-windows:
+    name: Build Windows (Setup.exe)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend Python deps
+        working-directory: video-studio/backend
+        shell: cmd
+        run: |
+          python -m venv venv
+          venv\Scripts\pip.exe install --upgrade pip
+          venv\Scripts\pip.exe install -r requirements.txt
+          venv\Scripts\pip.exe install pyinstaller
+
+      - name: Build backend with PyInstaller
+        working-directory: video-studio/backend
+        shell: cmd
+        run: |
+          venv\Scripts\pyinstaller.exe --clean --noconfirm video_studio.spec
+
+      - name: Install frontend Node deps
+        working-directory: video-studio/frontend
+        run: npm install
+
+      - name: Build Electron app (Windows)
+        working-directory: video-studio/frontend
+        run: npm run make -- --platform win32
+        env:
+          NODE_ENV: production
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoStudio-Windows
+          path: video-studio/frontend/out/make/squirrel.windows/
+          retention-days: 30
+
+  # ─── Create GitHub Release ──────────────────────────────────
+  release:
+    name: Create Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VideoStudio-macOS
+          path: ./artifacts/macos
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VideoStudio-Windows
+          path: ./artifacts/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Video Studio ${{ github.ref_name }}"
+          body: |
+            ## 🎬 Video Studio ${{ github.ref_name }}
+
+            ### Tải xuống
+            - **macOS**: `VideoStudio-darwin-*.zip`
+            - **Windows**: `VideoStudioSetup.exe`
+
+            ### Hỗ trợ
+            📞 Zalo: **0386.690.764** (Cao Triều)
+          files: |
+            ./artifacts/macos/**/*.zip
+            ./artifacts/windows/**/*.exe
+          draft: false
+          prerelease: false

@@ -398,6 +398,7 @@ export default function ModuleLocalizePage() {
       });
       return {
         ai_style: st.ai_style || st.aiStyle || 'bán hàng',
+        ai_style_prompt: st.ai_style_prompt || st.custom_ai_prompt || st.customAiPrompt || '',
         voice_id: st.voice_id || st.voiceId || 'vi-VN-HoaiMyNeural',
         voice_speed: st.voice_speed !== undefined ? st.voice_speed : (st.voiceSpeed !== undefined ? st.voiceSpeed : 1.0),
         sync_mode: st.sync_mode || st.syncMode || 'keep_duration',

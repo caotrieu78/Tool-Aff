@@ -125,14 +125,11 @@ export default function ModuleAffiliatePage() {
   const [shuffleOrder, setShuffleOrder] = useState<boolean>(false);
 
   // ── 4. Voice & Audio Mixer ────────────────────────────────────────────────
+  // Danh sách khởi tạo tạm (placeholder) trước khi loadVoices() tải xong danh sách thật từ
+  // backend — chỉ chứa các id Edge-TTS chắc chắn còn tồn tại, tránh chọn nhầm giọng đã bị xóa.
   const [voices, setVoices] = useState<VoiceItem[]>([
     { id: 'vi-VN-HoaiMyNeural', name: 'Hoài My', gender: 'Nữ', region: 'Miền Bắc', description: 'Giọng nữ trẻ trung, thu hút, chuyên review bán hàng TikTok' },
     { id: 'vi-VN-NamMinhNeural', name: 'Nam Minh', gender: 'Nam', region: 'Miền Bắc', description: 'Giọng nam truyền cảm, phong thái chuyên gia công nghệ' },
-    { id: 'diem_trinh', name: 'Diễm Trinh', gender: 'Nữ', region: 'Miền Nam', description: 'Giọng nữ miền Nam ngọt ngào, gần gũi, chốt đơn tự nhiên' },
-    { id: 'ngoc_huyen', name: 'Ngọc Huyền', gender: 'Nữ', region: 'Miền Nam', description: 'Giọng nữ miền Nam tươi vui, năng động, bắt trend' },
-    { id: 'mai_linh', name: 'Mai Linh', gender: 'Nữ', region: 'Miền Bắc', description: 'Giọng nữ nhẹ nhàng, phong cách kể chuyện đời thường' },
-    { id: 'hung_thinh', name: 'Hùng Thịnh', gender: 'Nam', region: 'Miền Nam', description: 'Giọng nam nội lực, phong cách bán hàng livestream' },
-    { id: 'phat_tai', name: 'Phát Tài', gender: 'Nam', region: 'Miền Nam', description: 'Giọng nam vui nhộn, hài hước, tạo thiện cảm' },
   ]);
   const [selectedVoice, setSelectedVoice] = useState<string>('vi-VN-HoaiMyNeural');
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'female' | 'male' | 'north' | 'south'>('all');
@@ -306,8 +303,8 @@ export default function ModuleAffiliatePage() {
   const loadVoices = async () => {
     try {
       const res = await settingsApi.getTtsVoices();
-      if (Array.isArray(res) && res.length > 0) {
-        setVoices(res as any);
+      if (res.voices && res.voices.length > 0) {
+        setVoices(res.voices as any);
       }
     } catch (err) {
       console.warn('Dùng danh sách giọng đọc mặc định');

@@ -1,8 +1,11 @@
 import os
 import re
 import cv2
+import logging
 from typing import List, Dict, Any
 import difflib
+
+logger = logging.getLogger(__name__)
 
 _cached_ocr_reader = None
 
@@ -168,6 +171,19 @@ def extract_subtitles_from_video_ocr(
     video_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     video_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_duration = total_frames / video_fps if video_fps > 0 else 0.0
+
+    # Video dài quét cố định sample_fps=2.0 (2 khung/giây) sẽ tốn hàng nghìn lượt OCR CPU, mất rất lâu.
+    # Tự động hạ sample_fps để tổng số khung cần quét luôn nằm trong ngưỡng hợp lý — video càng dài,
+    # tần suất lấy mẫu càng thưa, tránh việc quét sub cứng biến thành bước nghẽn cổ chai của cả pipeline.
+    MAX_SAMPLED_FRAMES = 3000
+    estimated_samples = total_duration * sample_fps
+    if total_duration > 0 and estimated_samples > MAX_SAMPLED_FRAMES:
+        effective_sample_fps = max(0.2, MAX_SAMPLED_FRAMES / total_duration)
+        logger.info(
+            f"[OCR] Video dài {total_duration:.0f}s -> giảm sample_fps từ {sample_fps} "
+            f"xuống {effective_sample_fps:.3f} để tránh quét quá lâu"
+        )
+        sample_fps = effective_sample_fps
 
     frame_step = max(1, int(round(video_fps / sample_fps)))
     sample_interval_sec = frame_step / video_fps

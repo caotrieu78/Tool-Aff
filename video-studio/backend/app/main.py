@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.db import init_db
 from app.api import routes_library, routes_localize, routes_affiliate
-from app.api import routes_jobs, routes_publish, routes_settings, routes_editor
+from app.api import routes_jobs, routes_publish, routes_settings, routes_editor, routes_license
 from app.workers.job_runner import start_job_runner
 from app.workers.publish_worker import start_publish_worker
 
@@ -29,6 +29,16 @@ async def lifespan(app: FastAPI):
 
     # Khởi chạy background publish worker quét lịch đăng tự động
     _publish_worker_task = asyncio.create_task(start_publish_worker())
+
+    # Warm-up model VieNeu-TTS ở nền ngay khi backend khởi động (nếu đã cài đặt), để lần đầu
+    # người dùng bấm nghe thử/tạo giọng không phải chờ nạp model (~10-20s) ngay lúc đó.
+    try:
+        from app.services.vieneu_tts_service import is_vieneu_available, _vieneu_manager
+        if is_vieneu_available():
+            asyncio.create_task(asyncio.to_thread(_vieneu_manager._get_engine))
+            logger.info("🔥 Đang warm-up model VieNeu-TTS ở nền...")
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"[VieNeu-TTS] Bỏ qua warm-up: {e}")
 
     yield
 
@@ -82,6 +92,7 @@ app.include_router(routes_jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(routes_publish.router, prefix="/api/publish", tags=["Publish"])
 app.include_router(routes_settings.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(routes_editor.router, prefix="/api/editor", tags=["Editor & Scheduler"])
+app.include_router(routes_license.router, prefix="/api/license", tags=["License"])
 
 
 @app.get("/api/health")

@@ -31,10 +31,17 @@ def calculate_optimal_keyframes_count(duration: float) -> int:
         return 20
 
 
-def extract_video_keyframes(video_path: str, num_frames: int = 10) -> List[Tuple[bytes, float]]:
+def extract_video_keyframes(
+    video_path: str,
+    num_frames: int = 10,
+    start_sec: float = 0.0,
+    end_sec: Optional[float] = None,
+) -> List[Tuple[bytes, float]]:
     """
     Trích xuất danh sách keyframes JPEG đại diện kèm mốc thời gian (giây) của từng khung hình.
-    Trả về danh sách (jpg_bytes, timestamp_sec).
+    Có thể giới hạn trong 1 khung thời gian [start_sec, end_sec) thay vì toàn bộ video — dùng để
+    lấy mẫu khung hình cho từng "cửa sổ" thời gian khi xử lý video dài (xem generate_script_from_video_vision).
+    Trả về danh sách (jpg_bytes, timestamp_sec) với timestamp luôn là mốc thời gian TUYỆT ĐỐI trên video gốc.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -49,9 +56,15 @@ def extract_video_keyframes(video_path: str, num_frames: int = 10) -> List[Tuple
         cap.release()
         return []
 
-    num_frames = max(3, min(num_frames, total_frames))
+    start_frame = max(0, int(start_sec * fps))
+    end_frame = total_frames if end_sec is None else min(total_frames, int(end_sec * fps))
+    if end_frame <= start_frame:
+        end_frame = min(total_frames, start_frame + 1)
+    window_frames = end_frame - start_frame
+
+    num_frames = max(1, min(num_frames, window_frames))
     frame_indices = [
-        int(total_frames * (i + 0.5) / num_frames)
+        start_frame + int(window_frames * (i + 0.5) / num_frames)
         for i in range(num_frames)
     ]
 
@@ -87,14 +100,28 @@ async def generate_script_from_video_vision(
     3. Tự động biên kịch câu chuyện thuyết minh tiếng Việt phân bổ đều toàn bộ video.
     """
     total_dur = max(3.0, float(duration))
-    num_frames = calculate_optimal_keyframes_count(total_dur)
-    keyframes_with_time = await asyncio.to_thread(extract_video_keyframes, video_path, num_frames)
 
-    # Tính toán số câu thoại mục tiêu theo thời lượng: trung bình 1 câu ngắn mỗi 7-9 giây
-    target_sentences = max(3, int(total_dur / 8.0))
-    min_sentences = max(2, target_sentences - 1)
-    max_sentences = target_sentences + 2
-
+    _STYLE_REVIEW_PHIM = (
+        "Top-tier Movie-Review / Dramatic-Recap style: tense, fast-paced narration that builds suspense and curiosity "
+        "('Watch this person...', 'No one expected that...', 'At this very moment...'), closely following each character's "
+        "expressions and dramatic actions on screen, with sharp, decisive, highly engaging phrasing."
+    )
+    _STYLE_HOAT_HINH = (
+        "Top-tier AI-Movie / 3D-Animation style: imaginative, engaging narration describing the quirky, surprising actions "
+        "and expressions of the animated/AI characters on screen ('This sleepy little frog is plotting something...', "
+        "'Watch this brilliant twist...'), witty and captivating like narrating an animated feature film."
+    )
+    _STYLE_BAN_HANG = (
+        "Viral Sales / Affiliate / TikTok Shop Closing style: open with a hook that targets the viewer's mindset and urgent "
+        "need, closely observe the unboxing and real functionality of the product to highlight its superior convenience, "
+        "spark the urge to buy immediately, and close with a well-placed call to action to tap the cart in the bottom-left corner."
+    )
+    _STYLE_NHAN_VAT = (
+        "Direct In-Scene Character Voiceover / Roleplay: You are NOT a third-person narrator. "
+        "Speak directly AS the on-screen character in the first person ('tôi', 'mình', 'tớ'). "
+        "Express the character's direct spoken lines, reactions, or inner monologue matching their actions on screen. "
+        "NEVER use third-person narrator phrasing like 'cô ấy', 'anh ấy', 'hãy nhìn xem...'. Speak as the character themselves."
+    )
     style_prompts = {
         "casual": "Natural, friendly, everyday tone — like a friend sharing a useful tip.",
         "đời thường": "Natural, friendly, everyday tone — like a friend sharing a useful tip.",
@@ -104,68 +131,75 @@ async def generate_script_from_video_vision(
         "kể chuyện": "Expressive, warm, narrative-driven and captivating, highlighting skill and creativity.",
         "technical": "Concise, precise, objective, with detailed step-by-step analysis of what's being done.",
         "chuyên gia": "Concise, precise, objective, with detailed step-by-step analysis of what's being done.",
-        "review_phim": (
-            "Top-tier Movie-Review / Dramatic-Recap style: tense, fast-paced narration that builds suspense and curiosity "
-            "('Watch this person...', 'No one expected that...', 'At this very moment...'), closely following each character's "
-            "expressions and dramatic actions on screen, with sharp, decisive, highly engaging phrasing."
-        ),
-        "review phim": (
-            "Top-tier Movie-Review / Dramatic-Recap style: tense, fast-paced narration that builds suspense and curiosity "
-            "('Watch this person...', 'No one expected that...', 'At this very moment...'), closely following each character's "
-            "expressions and dramatic actions on screen, with sharp, decisive, highly engaging phrasing."
-        ),
-        "hoat_hinh_ai": (
-            "Top-tier AI-Movie / 3D-Animation style: imaginative, engaging narration describing the quirky, surprising actions "
-            "and expressions of the animated/AI characters on screen ('This sleepy little frog is plotting something...', "
-            "'Watch this brilliant twist...'), witty and captivating like narrating an animated feature film."
-        ),
-        "phim_ai": (
-            "Top-tier AI-Movie / 3D-Animation style: imaginative, engaging narration describing the quirky, surprising actions "
-            "and expressions of the animated/AI characters on screen ('This sleepy little frog is plotting something...', "
-            "'Watch this brilliant twist...'), witty and captivating like narrating an animated feature film."
-        ),
-        "ban_hang": (
-            "Viral Sales / Affiliate / TikTok Shop Closing style: open with a hook that targets the viewer's mindset and urgent "
-            "need, closely observe the unboxing and real functionality of the product to highlight its superior convenience, "
-            "spark the urge to buy immediately, and close with a well-placed call to action to tap the cart in the bottom-left corner."
-        ),
-        "bán hàng": (
-            "Viral Sales / Affiliate / TikTok Shop Closing style: open with a hook that targets the viewer's mindset and urgent "
-            "need, closely observe the unboxing and real functionality of the product to highlight its superior convenience, "
-            "spark the urge to buy immediately, and close with a well-placed call to action to tap the cart in the bottom-left corner."
-        ),
-        "affiliate": (
-            "Viral Sales / Affiliate / TikTok Shop Closing style: open with a hook that targets the viewer's mindset and urgent "
-            "need, closely observe the unboxing and real functionality of the product to highlight its superior convenience, "
-            "spark the urge to buy immediately, and close with a well-placed call to action to tap the cart in the bottom-left corner."
-        ),
-        "nhân vật": (
-            "Direct In-Scene Character Voiceover / Roleplay: You are NOT a third-person narrator. "
-            "Speak directly AS the on-screen character in the first person ('tôi', 'mình', 'tớ'). "
-            "Express the character's direct spoken lines, reactions, or inner monologue matching their actions on screen. "
-            "NEVER use third-person narrator phrasing like 'cô ấy', 'anh ấy', 'hãy nhìn xem...'. Speak as the character themselves."
-        ),
-        "nhan_vat": (
-            "Direct In-Scene Character Voiceover / Roleplay: You are NOT a third-person narrator. "
-            "Speak directly AS the on-screen character in the first person ('tôi', 'mình', 'tớ'). "
-            "Express the character's direct spoken lines, reactions, or inner monologue matching their actions on screen. "
-            "NEVER use third-person narrator phrasing like 'cô ấy', 'anh ấy', 'hãy nhìn xem...'. Speak as the character themselves."
-        ),
-        "lồng tiếng nhân vật": (
-            "Direct In-Scene Character Voiceover / Roleplay: You are NOT a third-person narrator. "
-            "Speak directly AS the on-screen character in the first person ('tôi', 'mình', 'tớ'). "
-            "Express the character's direct spoken lines, reactions, or inner monologue matching their actions on screen. "
-            "NEVER use third-person narrator phrasing like 'cô ấy', 'anh ấy', 'hãy nhìn xem...'. Speak as the character themselves."
-        ),
+        "review_phim": _STYLE_REVIEW_PHIM,
+        "review phim": _STYLE_REVIEW_PHIM,
+        # id thực tế frontend gửi cho thẻ "Phim AI / Hoạt hình" là "hoạt hình" — trước đây dict chỉ có
+        # "hoat_hinh_ai"/"phim_ai" nên chọn thẻ này bị rơi về style "casual" mặc định, không đúng ý.
+        "hoạt hình": _STYLE_HOAT_HINH,
+        "hoat_hinh_ai": _STYLE_HOAT_HINH,
+        "phim_ai": _STYLE_HOAT_HINH,
+        "ban_hang": _STYLE_BAN_HANG,
+        "bán hàng": _STYLE_BAN_HANG,
+        "affiliate": _STYLE_BAN_HANG,
+        "nhân vật": _STYLE_NHAN_VAT,
+        "nhan_vat": _STYLE_NHAN_VAT,
+        "lồng tiếng nhân vật": _STYLE_NHAN_VAT,
     }
-    style_desc = style_prompts.get(style, style_prompts["casual"])
+    if style in style_prompts:
+        style_desc = style_prompts[style]
+    elif style.startswith("custom_"):
+        style_desc = style_prompts["casual"]
+    else:
+        style_desc = (
+            f"MANDATORY CUSTOM STYLE INSTRUCTION FROM USER:\n"
+            f"\"\"\"{style}\"\"\"\n"
+            f"You MUST strictly follow this custom style, perspective, emotional tone, and phrasing rules."
+        )
 
-    time_labels = ", ".join(f"Frame #{i+1} ({t:.1f}s)" for i, (_, t) in enumerate(keyframes_with_time))
+    keys = await GeminiKeyPool.get_active_keys(db)
+    if not keys:
+        logger.warning("[Vision] Không có Gemini/Kie.ai key hoạt động → dùng kịch bản dự phòng")
+        return _fallback_script(total_dur)
 
-    prompt = f"""You are a content-creation expert and voiceover scriptwriter for viral short TikTok/Reels videos.
+    # Video dài -> chia thành nhiều "cửa sổ" thời gian ~WINDOW_SECONDS, mỗi cửa sổ tự trích keyframe
+    # + gọi Gemini riêng, thay vì luôn nhồi TOÀN BỘ video vào đúng 20 keyframe + 1 lần gọi duy nhất.
+    # Trước đây video càng dài thì mật độ hình ảnh grounding càng thưa (20 khung cho cả 30-60 phút)
+    # trong khi số câu yêu cầu AI viết lại tăng vô hạn theo thời lượng -> AI dễ "bịa" nội dung.
+    WINDOW_SECONDS = 120.0
+    if total_dur <= 300.0:
+        windows = [(0.0, total_dur)]
+    else:
+        windows = []
+        t = 0.0
+        while t < total_dur:
+            w_end = min(total_dur, t + WINDOW_SECONDS)
+            windows.append((t, w_end))
+            t = w_end
+
+    semaphore = asyncio.Semaphore(3)
+
+    async def _generate_window_script(w_start: float, w_end: float) -> List[Dict[str, Any]]:
+        w_dur = w_end - w_start
+        num_frames = calculate_optimal_keyframes_count(w_dur)
+        keyframes_with_time = await asyncio.to_thread(
+            extract_video_keyframes, video_path, num_frames, w_start, w_end
+        )
+        target_sentences = max(1, int(w_dur / 8.0))
+        min_sentences = max(1, target_sentences - 1)
+        max_sentences = target_sentences + 2
+
+        time_labels = ", ".join(f"Frame #{i+1} ({t:.1f}s)" for i, (_, t) in enumerate(keyframes_with_time))
+        context_note = (
+            "This is the FULL video." if len(windows) == 1 else
+            f"This is one segment (from {w_start:.1f}s to {w_end:.1f}s) of a longer video whose total duration is "
+            f"{total_dur:.1f}s. Only write narration for THIS segment's time range — do not summarize or conclude "
+            "the whole video here."
+        )
+
+        prompt = f"""You are a content-creation expert and voiceover scriptwriter for viral short TikTok/Reels videos.
 This video is a movie clip / dramatic moment / daily-life scene / life-hack clip with NO DIALOGUE AND NO SUBTITLES AT ALL.
-Total video duration: {total_dur:.1f} seconds.
-The attached frames were extracted in chronological order: {time_labels}.
+{context_note}
+The attached frames were extracted in chronological order, with ABSOLUTE video timestamps: {time_labels}.
 
 YOUR TASK:
 1. Carefully observe every frame: identify the actions, objects, emotions, and key events happening at each timestamp.
@@ -174,17 +208,18 @@ YOUR TASK:
    character, object, or event that is not shown.
 3. SPREAD THE TIMING EVENLY:
    - Split the script into roughly {min_sentences} to {max_sentences} short lines.
-   - Lines must be spread evenly across the whole video, from 0.0s to {max(1.0, total_dur - 1.5):.1f}s (roughly one line every 7-9 seconds, matching the action happening then).
+   - Lines must be spread evenly across the segment, from {w_start:.1f}s to {max(w_start + 1.0, w_end - 1.0):.1f}s
+     (roughly one line every 7-9 seconds, matching the action happening then).
    - NEVER leave a silent gap longer than 10 seconds.
    - Each line should be a moderate length (about 8 to 16 words), natural, easy to listen to, and not overly sentimental.
-4. Each line's 'start' and 'end' timestamps must increase in real video time and never exceed {total_dur:.1f}s.
+4. Each line's 'start' and 'end' timestamps are ABSOLUTE video time and must stay within [{w_start:.1f}, {w_end:.1f}].
 
 You MUST return EXACTLY this JSON array-of-objects format (no extra explanation):
 [
   {{
     "id": 1,
-    "start": 0.0,
-    "end": 3.5,
+    "start": {w_start:.1f},
+    "end": {min(w_end, w_start + 3.5):.1f},
     "text": "Short action summary",
     "text_vi": "Engaging Vietnamese narration line matching the frame"
   }}
@@ -192,113 +227,120 @@ You MUST return EXACTLY this JSON array-of-objects format (no extra explanation)
 
 IMPORTANT: the "text_vi" value for every item must be written in natural, fluent Vietnamese — this is the final language shown to end users."""
 
-    keys = await GeminiKeyPool.get_active_keys(db)
-    if not keys:
-        logger.warning("[Vision] Không có Gemini/Kie.ai key hoạt động → dùng kịch bản dự phòng")
-        return _fallback_script(total_dur)
+        contents: List[Any] = []
+        for idx_f, (img_bytes, t_sec) in enumerate(keyframes_with_time):
+            contents.append({"text": f"Frame #{idx_f + 1} (at {t_sec:.1f}s):"})
+            contents.append({
+                "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": base64.b64encode(img_bytes).decode("utf-8"),  # base64 string, không phải raw bytes
+                }
+            })
+        contents.append({"text": prompt})
 
-    # Xây dựng nội dung multimodal cho Kie.ai — base64 encode từng frame
-    contents: List[Any] = []
-    for idx_f, (img_bytes, t_sec) in enumerate(keyframes_with_time):
-        contents.append({"text": f"Frame #{idx_f + 1} (at {t_sec:.1f}s):"})
-        contents.append({
-            "inline_data": {
-                "mime_type": "image/jpeg",
-                "data": base64.b64encode(img_bytes).decode("utf-8"),  # base64 string, không phải raw bytes
-            }
-        })
-    contents.append({"text": prompt})
+        async with semaphore:
+            for raw_k in keys:
+                key_record: Any = raw_k
+                key_id: int = int(key_record.id)
+                api_key: str = decrypt_value(str(key_record.api_key_encrypted))
 
-    for raw_k in keys:
-        key_record: Any = raw_k
-        key_id: int = int(key_record.id)
-        api_key: str = decrypt_value(str(key_record.api_key_encrypted))
+                try:
+                    logger.info(
+                        f"[Vision] Gọi Kie.ai key #{key_id} | cửa sổ {w_start:.1f}-{w_end:.1f}s | "
+                        f"{len(keyframes_with_time)} frames"
+                    )
+                    response_text = await call_kie_ai_gemini(
+                        api_key=api_key,
+                        prompt=contents,
+                        model_name="gemini-3-8-flash",
+                    )
 
-        try:
-            logger.info(
-                f"[Vision] Gọi Kie.ai key #{key_id} | "
-                f"{len(keyframes_with_time)} frames | {total_dur:.1f}s"
-            )
-            response_text = await call_kie_ai_gemini(
-                api_key=api_key,
-                prompt=contents,
-                model_name="gemini-3-8-flash",
-            )
+                    if not response_text:
+                        logger.warning(f"[Vision] Key #{key_id} trả về response rỗng → thử key tiếp theo")
+                        continue
 
-            if not response_text:
-                logger.warning(f"[Vision] Key #{key_id} trả về response rỗng → thử key tiếp theo")
-                continue
+                    json_str = response_text
+                    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", response_text)
+                    if match:
+                        json_str = match.group(1)
 
-            # Trích xuất JSON từ phản hồi
-            json_str = response_text
-            match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", response_text)
-            if match:
-                json_str = match.group(1)
+                    data = json.loads(json_str.strip())
+                    if not isinstance(data, list) or len(data) == 0:
+                        logger.warning(f"[Vision] JSON hợp lệ nhưng rỗng → thử key tiếp theo")
+                        continue
 
-            data = json.loads(json_str.strip())
-            if not isinstance(data, list) or len(data) == 0:
-                logger.warning(f"[Vision] JSON hợp lệ nhưng rỗng → thử key tiếp theo")
-                continue
+                    results = []
+                    prev_end = w_start
+                    for i, item in enumerate(data):
+                        s = max(w_start, round(float(item.get("start", prev_end)), 2))
+                        if s < prev_end and i > 0:
+                            s = round(prev_end + 0.5, 2)
 
-            results = []
-            prev_end = 0.0
-            for i, item in enumerate(data):
-                s = max(0.0, round(float(item.get("start", prev_end)), 2))
-                if s < prev_end and i > 0:
-                    s = round(prev_end + 0.5, 2)
+                        e = min(w_end, round(float(item.get("end", s + 3.0)), 2))
+                        if e <= s:
+                            e = min(w_end, round(s + 2.5, 2))
 
-                e = min(total_dur, round(float(item.get("end", s + 3.0)), 2))
-                if e <= s:
-                    e = min(total_dur, round(s + 2.5, 2))
+                        prev_end = e
+                        t_vi = str(item.get("text_vi") or item.get("text") or "").strip()
+                        t_orig = str(item.get("text") or t_vi).strip()
+                        results.append({
+                            "start": s,
+                            "end": e,
+                            "duration": round(e - s, 2),
+                            "text": t_orig,
+                            "text_vi": t_vi,
+                        })
 
-                prev_end = e
-                t_vi = str(item.get("text_vi") or item.get("text") or "").strip()
-                t_orig = str(item.get("text") or t_vi).strip()
-                results.append({
-                    "id": i + 1,
-                    "start": s,
-                    "end": e,
-                    "duration": round(e - s, 2),
-                    "text": t_orig,
-                    "text_vi": t_vi,
-                })
+                    logger.info(
+                        f"[Vision] ✅ Cửa sổ {w_start:.1f}-{w_end:.1f}s xong: {len(results)} câu (key #{key_id})"
+                    )
+                    GeminiKeyPool.clear_cooldown(key_id)
+                    return results
 
-            logger.info(
-                f"[Vision] ✅ Phân tích xong: {len(results)} câu thuyết minh "
-                f"cho video {total_dur:.1f}s (key #{key_id})"
-            )
-            GeminiKeyPool.clear_cooldown(key_id)
-            return results
+                except RuntimeError as e:
+                    err_str = str(e)
+                    logger.warning(f"[Vision] RuntimeError key #{key_id}: {err_str[:250]}")
+                    if "401" in err_str or "Unauthorized" in err_str:
+                        logger.error(f"[Vision] Key #{key_id} không hợp lệ → set cooldown 1h")
+                        GeminiKeyPool.set_cooldown(key_id, 3600)
+                    elif "402" in err_str or "429" in err_str or "Quota" in err_str or "Credits" in err_str:
+                        logger.warning(f"[Vision] Key #{key_id} hết credit → set cooldown 2 phút")
+                        GeminiKeyPool.set_cooldown(key_id, 120)
+                    elif "503" in err_str or "capacity" in err_str.lower():
+                        logger.warning(f"[Vision] Kie.ai 503 quá tải → set cooldown 30s")
+                        GeminiKeyPool.set_cooldown(key_id, 30)
+                    continue
 
-        except RuntimeError as e:
-            err_str = str(e)
-            logger.warning(f"[Vision] RuntimeError key #{key_id}: {err_str[:250]}")
-            if "401" in err_str or "Unauthorized" in err_str:
-                logger.error(f"[Vision] Key #{key_id} không hợp lệ → set cooldown 1h")
-                GeminiKeyPool.set_cooldown(key_id, 3600)
-            elif "402" in err_str or "429" in err_str or "Quota" in err_str or "Credits" in err_str:
-                logger.warning(f"[Vision] Key #{key_id} hết credit → set cooldown 2 phút")
-                GeminiKeyPool.set_cooldown(key_id, 120)
-            elif "503" in err_str or "capacity" in err_str.lower():
-                logger.warning(f"[Vision] Kie.ai 503 quá tải → set cooldown 30s")
-                GeminiKeyPool.set_cooldown(key_id, 30)
-            # Thử key tiếp theo
-            continue
+                except json.JSONDecodeError as e:
+                    logger.warning(f"[Vision] JSON parse lỗi key #{key_id}: {e} → thử key tiếp theo")
+                    continue
 
-        except json.JSONDecodeError as e:
-            logger.warning(f"[Vision] JSON parse lỗi key #{key_id}: {e} → thử key tiếp theo")
-            continue
+                except Exception as e:
+                    logger.warning(f"[Vision] Lỗi không xác định key #{key_id}: {str(e)[:250]} → thử key tiếp theo")
+                    continue
 
-        except Exception as e:
-            logger.warning(f"[Vision] Lỗi không xác định key #{key_id}: {str(e)[:250]} → thử key tiếp theo")
-            continue
+        # Tất cả key đều thất bại cho riêng cửa sổ này -> dùng kịch bản dự phòng chỉ cho đoạn này,
+        # không làm hỏng toàn bộ video vì các cửa sổ khác vẫn có thể thành công.
+        logger.error(f"[Vision] Cửa sổ {w_start:.1f}-{w_end:.1f}s: tất cả key thất bại → dùng kịch bản dự phòng")
+        return [
+            {**seg, "start": round(seg["start"] + w_start, 2), "end": round(seg["end"] + w_start, 2)}
+            for seg in _fallback_script(w_dur)
+        ]
 
-    # Kịch bản dự phòng nếu tất cả key đều thất bại
-    logger.error(
-        f"[Vision] Tất cả key đều thất bại. "
-        f"Trả về kịch bản dự phòng cho video {total_dur:.1f}s"
+    window_results = await asyncio.gather(*[_generate_window_script(w_s, w_e) for w_s, w_e in windows])
+
+    all_segments: List[Dict[str, Any]] = []
+    for window_segs in window_results:
+        all_segments.extend(window_segs)
+
+    for i, seg in enumerate(all_segments):
+        seg["id"] = i + 1
+
+    logger.info(
+        f"[Vision] ✅ Hoàn tất {len(windows)} cửa sổ, tổng {len(all_segments)} câu thuyết minh "
+        f"cho video {total_dur:.1f}s"
     )
-    return _fallback_script(total_dur)
+    return all_segments
 
 
 def _fallback_script(total_dur: float) -> List[Dict[str, Any]]:

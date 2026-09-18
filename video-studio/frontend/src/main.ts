@@ -23,13 +23,16 @@ function spawnBackend() {
   }
 
   const isDev = process.env.NODE_ENV !== 'production';
+  const fs = require('node:fs');
+  const isWin = process.platform === 'win32';
+  const binaryName = isWin ? 'video_studio_backend.exe' : 'video_studio_backend';
 
-  let pythonCmd: string;
-  let backendDir: string;
+  let pythonCmd = '';
+  let backendDir = '';
+  let runArgs: string[] = [];
 
   if (isDev) {
-    const fs = require('node:fs');
-    // Robust resolution: try multiple relative paths until backend exists
+    // Robust resolution for dev mode: try multiple relative paths until backend exists
     const candidates = [
       path.join(app.getAppPath(), '..', 'backend'),
       path.join(app.getAppPath(), '..', '..', 'backend'),
@@ -37,34 +40,59 @@ function spawnBackend() {
       path.join(process.cwd(), 'backend'),
     ];
     backendDir = candidates.find(p => fs.existsSync(p)) || candidates[0];
-    const isWin = process.platform === 'win32';
     pythonCmd = isWin
       ? path.join(backendDir, 'venv', 'Scripts', 'python.exe')
       : path.join(backendDir, 'venv', 'bin', 'python');
 
+    runArgs = [
+      '-m', 'uvicorn', 'app.main:app',
+      '--host', '127.0.0.1',
+      '--port', String(BACKEND_PORT),
+      '--reload',
+      '--log-level', 'info',
+    ];
   } else {
-    // Production: PyInstaller binary
-    backendDir = path.join(process.resourcesPath, 'backend');
-    pythonCmd = path.join(backendDir, 'video_studio_backend');
+    // Production: PyInstaller standalone binary
+    const candidateDirs = [
+      path.join(process.resourcesPath, 'backend', 'video_studio_backend'),
+      path.join(process.resourcesPath, 'video_studio_backend'),
+      path.join(process.resourcesPath, 'backend'),
+    ];
+
+    for (const dir of candidateDirs) {
+      const candidateExe = path.join(dir, binaryName);
+      if (fs.existsSync(candidateExe)) {
+        pythonCmd = candidateExe;
+        backendDir = dir;
+        break;
+      }
+    }
+
+    if (!pythonCmd) {
+      // Fallback
+      backendDir = candidateDirs[0];
+      pythonCmd = path.join(backendDir, binaryName);
+    }
+
+    // Frozen PyInstaller binary already runs uvicorn inside run_server.py
+    runArgs = [];
   }
 
   console.log(`[Backend] Spawning: ${pythonCmd} in ${backendDir}`);
 
   try {
-    const uvicornArgs = [
-      '-m', 'uvicorn', 'app.main:app',
-      '--host', '127.0.0.1',
-      '--port', String(BACKEND_PORT),
-      ...(isDev ? ['--reload'] : []),
-      '--log-level', 'info',
-    ];
-
     backendProcess = spawn(
       pythonCmd,
-      uvicornArgs,
+      runArgs,
       {
         cwd: backendDir,
         stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+        env: {
+          ...process.env,
+          BACKEND_PORT: String(BACKEND_PORT),
+          BACKEND_HOST: '127.0.0.1',
+        },
       }
     );
 

@@ -13,6 +13,9 @@ import ModuleAffiliatePage from './pages/ModuleAffiliate/ModuleAffiliatePage';
 import EditorPage from './pages/Editor/EditorPage';
 import SchedulerPage from './pages/Scheduler/SchedulerPage';
 import SettingsPage from './pages/Settings/SettingsPage';
+import LicenseModal from './components/LicenseModal';
+import LicenseBadge from './components/LicenseBadge';
+import { licenseApi, LicenseStatus } from './api/client';
 
 const NAV_ITEMS = [
   { to: '/library',   icon: LayoutGrid,    label: 'Thư Viện' },
@@ -31,10 +34,37 @@ export default function App() {
     }
   });
 
+  const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
+  const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
+
+  const fetchLicense = async (force = false) => {
+    try {
+      const status = await licenseApi.getStatus(force);
+      setLicenseStatus(status);
+      // Chỉ tự động mở modal nếu CHƯA kích hoạt hoặc key thực sự bị chặn/hết hạn
+      if (!status.is_valid) {
+        setIsLicenseModalOpen(true);
+      }
+    } catch (e) {
+      console.error('Failed to fetch license status', e);
+      // Lỗi kết nối tạm thời tuyệt đối không tự ý bật modal làm phiền người dùng
+    }
+  };
+
+  useEffect(() => {
+    // Khi khởi động: kiểm tra trạng thái (dùng cache nếu còn hạn)
+    fetchLicense(false);
+    // Kiểm tra định kỳ mỗi 10 PHÚT (10 * 60 * 1000 = 600,000ms), không check liên tục
+    const interval = setInterval(() => fetchLicense(false), 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem('sidebar_collapsed', String(isCollapsed));
-    } catch {}
+    } catch (_err) {
+      // ignore localStorage error
+    }
   }, [isCollapsed]);
 
   // Keyboard shortcut: Cmd/Ctrl + B to toggle sidebar
@@ -126,8 +156,14 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Bottom: Settings */}
-          <div className="p-2 border-t border-slate-800/80">
+          {/* Bottom: License Badge & Settings */}
+          <div className="p-2 border-t border-slate-800/80 space-y-1.5">
+            <LicenseBadge
+              licenseStatus={licenseStatus}
+              isCollapsed={isCollapsed}
+              onClick={() => setIsLicenseModalOpen(true)}
+            />
+
             <NavLink
               to="/settings"
               title={isCollapsed ? 'Cài Đặt' : undefined}
@@ -172,6 +208,21 @@ export default function App() {
             <Route path="/settings"  element={<SettingsPage />} />
           </Routes>
         </main>
+
+        {/* License Modal (Phase 5) */}
+        <LicenseModal
+          isOpen={isLicenseModalOpen || (licenseStatus !== null && !licenseStatus.is_valid)}
+          licenseStatus={licenseStatus}
+          canClose={Boolean(licenseStatus?.is_valid)}
+          onClose={() => setIsLicenseModalOpen(false)}
+          onStatusUpdate={(updated) => {
+            setLicenseStatus(updated);
+          }}
+          onSuccess={(updated) => {
+            setLicenseStatus(updated);
+            setIsLicenseModalOpen(false);
+          }}
+        />
       </div>
     </HashRouter>
   );

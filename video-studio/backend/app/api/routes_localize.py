@@ -26,6 +26,8 @@ router = APIRouter()
 class LocalizeSubmitRequest(BaseModel):
     video_id: int
     ai_style: Optional[str] = "đời thường"
+    ai_style_prompt: Optional[str] = None
+    custom_ai_prompt: Optional[str] = None
     voice_id: Optional[str] = "vi-VN-HoaiMyNeural"
     voice_speed: Optional[float] = 1.0
     sync_mode: Optional[str] = "keep_duration"
@@ -76,6 +78,8 @@ async def submit_localize_job(body: LocalizeSubmitRequest, db: AsyncSession = De
         "recognition_mode": recog_mode,
         "ai_model": "gemini-3.8-flash",
         "ai_style": body.ai_style,
+        "ai_style_prompt": body.ai_style_prompt or body.custom_ai_prompt or "",
+        "custom_ai_prompt": body.custom_ai_prompt or body.ai_style_prompt or "",
         "voice_id": body.voice_id,
         "voice_speed": body.voice_speed,
         "sync_mode": body.sync_mode or "keep_duration",

@@ -227,28 +227,50 @@ export default function LocalizeEditorPage() {
     if (!found || !found.settings) return;
     const s = found.settings;
 
+    // Cấu hình cũ có thể đã bị lưu nhầm dưới key camelCase (bug đã sửa ở LocalizePresetsPage) —
+    // đọc kèm fallback camelCase để các cấu hình đã lưu trước đó vẫn áp dụng đúng, không cần lưu lại.
+    const subFontVal = s.sub_font ?? s.subFont;
+    const subFontSizeVal = s.sub_font_size ?? s.subFontSize;
+    const subColorVal = s.sub_color ?? s.subTextColor;
+    const subBgColorVal = s.sub_bg_color ?? s.subBgColor;
+    const subBgOpacityVal = s.sub_bg_opacity ?? s.subBgOpacity;
+    const subStyleTypeVal = s.sub_style_type ?? s.subStyleType;
+    const subBoldVal = s.sub_bold ?? s.subBold;
+    const subItalicVal = s.sub_italic ?? s.subItalic;
+    const subPlacementVal = s.sub_placement ?? s.subPlacement;
+    const subPositionModeVal = s.sub_position_mode ?? s.subPositionMode;
+    const subPositionPercentVal = s.sub_position_percent ?? s.subPositionPercent;
+    const blurAmountVal = s.blur_amount ?? s.blurAmount;
+    const blurMethodVal = s.blur_method ?? s.blurMethod;
+    const voiceIdVal = s.voice_id ?? s.voiceId;
+    const voiceSpeedVal = s.voice_speed ?? s.voiceSpeed;
+    const syncModeVal = s.sync_mode ?? s.syncMode;
+    const volumeVoiceoverVal = s.volume_voiceover ?? s.aiVoiceVolume;
+    const volumeOriginalVal = s.volume_original ?? s.bgmVolume;
+    const volumeOriginalVoiceVal = s.volume_original_voice ?? s.originalVoiceVolume;
+
     // 1. Phụ đề (Font, cỡ chữ, màu sắc, vị trí, làm mờ)
-    if (s.sub_font) setSubFont(s.sub_font);
-    if (s.sub_font_size) setSubFontSize(s.sub_font_size);
-    if (s.sub_color) setSubColor(s.sub_color);
-    if (s.sub_bg_color) setSubBgColor(s.sub_bg_color);
-    if (s.sub_bg_opacity !== undefined) setSubBgOpacity(s.sub_bg_opacity);
-    if (s.sub_style_type) setSubStyleType(s.sub_style_type);
-    if (s.sub_bold !== undefined) setSubBold(s.sub_bold);
-    if (s.sub_italic !== undefined) setSubItalic(s.sub_italic);
-    if (s.sub_placement) setSubPlacement(s.sub_placement);
-    if (s.sub_position_mode) setSubPositionMode(s.sub_position_mode);
-    if (s.sub_position_percent !== undefined) setSubPositionPercent(s.sub_position_percent);
-    if (s.blur_amount !== undefined) setBlurAmount(s.blur_amount);
-    if (s.blur_method) setBlurMethod(s.blur_method);
+    if (subFontVal) setSubFont(subFontVal);
+    if (subFontSizeVal) setSubFontSize(subFontSizeVal);
+    if (subColorVal) setSubColor(subColorVal);
+    if (subBgColorVal) setSubBgColor(subBgColorVal);
+    if (subBgOpacityVal !== undefined) setSubBgOpacity(subBgOpacityVal);
+    if (subStyleTypeVal) setSubStyleType(subStyleTypeVal);
+    if (subBoldVal !== undefined) setSubBold(subBoldVal);
+    if (subItalicVal !== undefined) setSubItalic(subItalicVal);
+    if (subPlacementVal) setSubPlacement(subPlacementVal);
+    if (subPositionModeVal) setSubPositionMode(subPositionModeVal);
+    if (subPositionPercentVal !== undefined) setSubPositionPercent(subPositionPercentVal);
+    if (blurAmountVal !== undefined) setBlurAmount(blurAmountVal);
+    if (blurMethodVal) setBlurMethod(blurMethodVal);
 
     // 2. Lồng tiếng & Âm lượng
-    if (s.voice_id) setVoiceId(s.voice_id);
-    if (s.voice_speed !== undefined) setVoiceSpeed(s.voice_speed);
-    if (s.sync_mode) setSyncMode(s.sync_mode);
-    if (s.volume_voiceover !== undefined) setVolumeVoiceover(s.volume_voiceover);
-    if (s.volume_original !== undefined) setVolumeOriginalBgm(s.volume_original);
-    if (s.volume_original_voice !== undefined) setVolumeOriginalVoice(s.volume_original_voice);
+    if (voiceIdVal) setVoiceId(voiceIdVal);
+    if (voiceSpeedVal !== undefined) setVoiceSpeed(voiceSpeedVal);
+    if (syncModeVal) setSyncMode(syncModeVal);
+    if (volumeVoiceoverVal !== undefined) setVolumeVoiceover(volumeVoiceoverVal);
+    if (volumeOriginalVal !== undefined) setVolumeOriginalBgm(volumeOriginalVal);
+    if (volumeOriginalVoiceVal !== undefined) setVolumeOriginalVoice(volumeOriginalVoiceVal);
 
     setSelectedPresetId(pId);
     setHasUnrenderedChanges(true);

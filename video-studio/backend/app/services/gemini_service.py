@@ -343,6 +343,10 @@ async def call_kie_ai_gemini(
         "contents": contents,
         "generationConfig": {
             "temperature": 0.7,
+            # Video dài -> danh sách segment/kịch bản dài -> phản hồi JSON có thể rất lớn.
+            # Không set giới hạn này dễ khiến Gemini cắt output giữa chừng, JSON bị hỏng và
+            # rơi vào fallback (mất bản dịch) một cách âm thầm.
+            "maxOutputTokens": 8192,
         },
         # Không thêm "stream" vào Gemini native payload — field này chỉ dùng cho OpenAI format
     }
@@ -558,6 +562,7 @@ class GeminiKeyPool:
                             config = types.GenerateContentConfig(
                                 system_instruction=system_instruction,
                                 temperature=0.7,
+                                max_output_tokens=8192,
                             )
                         response = client.models.generate_content(
                             model=m_name,
@@ -636,73 +641,65 @@ async def translate_chinese_segments(
     if not segments:
         return []
 
+    _STYLE_REVIEW_PHIM = (
+        "Movie-Review / Dramatic-Recap style: gripping, tense, fast-paced delivery "
+        "(e.g. 'Watch this man closely...', 'No one expected that...', 'In the very next moment...'). "
+        "Follow the characters' events and actions closely; sharp, decisive prose that builds emotional intensity without sounding cheesy."
+    )
+    _STYLE_HOAT_HINH = (
+        "AI-Movie / 3D-Animation / Fantasy-World style: vivid, imaginative narration. "
+        "Describe the animated/AI characters' expressions and behavior in a witty, curious, or adventurous way "
+        "(e.g. 'This lazy little frog...', 'The tiny robot boy...'). Smart, playful dialogue that appeals to all ages."
+    )
+    _STYLE_BAN_HANG = (
+        "Sales / Affiliate / TikTok Shop & Shopee Closing style: "
+        "Open with a hook that targets the viewer's everyday pain point or inconvenience. "
+        "Emphasize the product's superior function and 'godsend' convenience to spark desire to own it. "
+        "Practical, persuasive delivery, closing with a natural, well-placed call to action (CTA) "
+        "(e.g. 'Great deal right now, tap the cart in the bottom-left corner to grab it!', 'This convenient — you'll regret not getting one!')."
+    )
+    _STYLE_NHAN_VAT = (
+        "First-Person Character Dubbing / In-Scene Roleplay: Speak DIRECTLY AS the character in the video (first-person 'tôi', 'mình', 'tớ', or character dialogue). "
+        "ABSOLUTELY NEVER act as a third-person narrator or storyteller (DO NOT use 'anh ấy', 'cô ấy', 'hãy nhìn người này...', 'chàng trai này...'). "
+        "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
+    )
     style_guide = {
         "đời thường": "Natural, warm, everyday conversational tone. Short and casual, fitting a TikTok/Douyin short-video voiceover.",
         "hài hước": "Humorous, witty tone that follows youth trends. Playful and engaging.",
         "kể chuyện": "Warm, narrative, expressive tone, as if confiding in someone or telling a captivating story.",
         "chuyên gia": "Professional, precise, trustworthy tone with detailed analysis of the product or topic.",
-        "review_phim": (
-            "Movie-Review / Dramatic-Recap style: gripping, tense, fast-paced delivery "
-            "(e.g. 'Watch this man closely...', 'No one expected that...', 'In the very next moment...'). "
-            "Follow the characters' events and actions closely; sharp, decisive prose that builds emotional intensity without sounding cheesy."
-        ),
-        "review phim": (
-            "Movie-Review / Dramatic-Recap style: gripping, tense, fast-paced delivery "
-            "(e.g. 'Watch this man closely...', 'No one expected that...', 'In the very next moment...'). "
-            "Follow the characters' events and actions closely; sharp, decisive prose that builds emotional intensity without sounding cheesy."
-        ),
-        "hoat_hinh_ai": (
-            "AI-Movie / 3D-Animation / Fantasy-World style: vivid, imaginative narration. "
-            "Describe the animated/AI characters' expressions and behavior in a witty, curious, or adventurous way "
-            "(e.g. 'This lazy little frog...', 'The tiny robot boy...'). Smart, playful dialogue that appeals to all ages."
-        ),
-        "phim_ai": (
-            "AI-Movie / 3D-Animation / Fantasy-World style: vivid, imaginative narration. "
-            "Describe the animated/AI characters' expressions and behavior in a witty, curious, or adventurous way "
-            "(e.g. 'This lazy little frog...', 'The tiny robot boy...'). Smart, playful dialogue that appeals to all ages."
-        ),
-        "ban_hang": (
-            "Sales / Affiliate / TikTok Shop & Shopee Closing style: "
-            "Open with a hook that targets the viewer's everyday pain point or inconvenience. "
-            "Emphasize the product's superior function and 'godsend' convenience to spark desire to own it. "
-            "Practical, persuasive delivery, closing with a natural, well-placed call to action (CTA) "
-            "(e.g. 'Great deal right now, tap the cart in the bottom-left corner to grab it!', 'This convenient — you'll regret not getting one!')."
-        ),
-        "bán hàng": (
-            "Sales / Affiliate / TikTok Shop & Shopee Closing style: "
-            "Open with a hook that targets the viewer's everyday pain point or inconvenience. "
-            "Emphasize the product's superior function and 'godsend' convenience to spark desire to own it. "
-            "Practical, persuasive delivery, closing with a natural, well-placed call to action (CTA) "
-            "(e.g. 'Great deal right now, tap the cart in the bottom-left corner to grab it!', 'This convenient — you'll regret not getting one!')."
-        ),
-        "affiliate": (
-            "Sales / Affiliate / TikTok Shop & Shopee Closing style: "
-            "Open with a hook that targets the viewer's everyday pain point or inconvenience. "
-            "Emphasize the product's superior function and 'godsend' convenience to spark desire to own it. "
-            "Practical, persuasive delivery, closing with a natural, well-placed call to action (CTA) "
-            "(e.g. 'Great deal right now, tap the cart in the bottom-left corner to grab it!', 'This convenient — you'll regret not getting one!')."
-        ),
-        "nhân vật": (
-            "First-Person Character Dubbing / In-Scene Roleplay: Speak DIRECTLY AS the character in the video (first-person 'tôi', 'mình', 'tớ', or character dialogue). "
-            "ABSOLUTELY NEVER act as a third-person narrator or storyteller (DO NOT use 'anh ấy', 'cô ấy', 'hãy nhìn người này...', 'chàng trai này...'). "
-            "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
-        ),
-        "nhan_vat": (
-            "First-Person Character Dubbing / In-Scene Roleplay: Speak DIRECTLY AS the character in the video (first-person 'tôi', 'mình', 'tớ', or character dialogue). "
-            "ABSOLUTELY NEVER act as a third-person narrator or storyteller (DO NOT use 'anh ấy', 'cô ấy', 'hãy nhìn người này...', 'chàng trai này...'). "
-            "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
-        ),
-        "lồng tiếng nhân vật": (
-            "First-Person Character Dubbing / In-Scene Roleplay: Speak DIRECTLY AS the character in the video (first-person 'tôi', 'mình', 'tớ', or character dialogue). "
-            "ABSOLUTELY NEVER act as a third-person narrator or storyteller (DO NOT use 'anh ấy', 'cô ấy', 'hãy nhìn người này...', 'chàng trai này...'). "
-            "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
-        ),
-    }.get(style, "Natural, concise, easy-to-listen tone for a short video.")
+        # "review_phim"/"review phim" là 2 key tương ứng 2 quy ước đặt id khác nhau từng dùng trong app —
+        # giữ cả 2 để không phá cấu hình cũ đã lưu trước đây, chỉ trỏ chung 1 nội dung để tránh lệch nhau.
+        "review_phim": _STYLE_REVIEW_PHIM,
+        "review phim": _STYLE_REVIEW_PHIM,
+        # id thực tế frontend gửi cho thẻ "Phim AI / Hoạt hình" là "hoạt hình" — trước đây dict chỉ có
+        # "hoat_hinh_ai"/"phim_ai" nên chọn thẻ này bị rơi về style mặc định chung chung, không đúng ý.
+        "hoạt hình": _STYLE_HOAT_HINH,
+        "hoat_hinh_ai": _STYLE_HOAT_HINH,
+        "phim_ai": _STYLE_HOAT_HINH,
+        "ban_hang": _STYLE_BAN_HANG,
+        "bán hàng": _STYLE_BAN_HANG,
+        "affiliate": _STYLE_BAN_HANG,
+        "nhân vật": _STYLE_NHAN_VAT,
+        "nhan_vat": _STYLE_NHAN_VAT,
+        "lồng tiếng nhân vật": _STYLE_NHAN_VAT,
+    }
+
+    if style in style_guide:
+        selected_style_guide = style_guide[style]
+    elif style.startswith("custom_"):
+        selected_style_guide = style_guide["đời thường"]
+    else:
+        selected_style_guide = (
+            f"MANDATORY CUSTOM STYLE INSTRUCTION FROM USER:\n"
+            f"\"\"\"{style}\"\"\"\n"
+            f"You MUST strictly follow this custom style, perspective, emotional tone, and phrasing requirements when writing the Vietnamese lines."
+        )
 
     system_instruction = (
         "You are a professional scriptwriter and translator for short Douyin/TikTok videos, translating into Vietnamese.\n"
         "TASK: Translate the Chinese dialogue script into fluent, contextually accurate Vietnamese.\n"
-        f"Required style: {style_guide}\n"
+        f"Required style:\n{selected_style_guide}\n"
         "IMPORTANT RULES:\n"
         "1. Preserve the exact number of lines and the matching ID for each segment.\n"
         "2. Keep each translated Vietnamese line concise and proportional to its duration_sec (approx. 3-4 syllables per second).\n"
@@ -711,55 +708,103 @@ async def translate_chinese_segments(
         "4. The translated text itself must be written in natural, fluent Vietnamese (this is the final language shown to end users)."
     )
 
-    prompt = (
-        "Translate the following list of lines into Vietnamese. Return the result as a JSON array:\n"
-        '[{"id": 0, "vi": "Vietnamese translation"}, ...]\n\n'
-        "Source data:\n"
-        + json.dumps(
-            [
-                {
-                    "id": s.get("id", i),
-                    "zh": s.get("text", ""),
-                    "duration_sec": round(float(s.get("end", 0.0)) - float(s.get("start", 0.0)), 2),
-                }
-                for i, s in enumerate(segments)
-            ],
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    # Video dài -> nhiều segment -> gửi hết 1 lần dễ khiến Gemini trả lời bị cắt giữa chừng (JSON hỏng),
+    # trước đây khi đó TOÀN BỘ segment sẽ rơi về fallback giữ nguyên tiếng Trung mà không có cảnh báo gì.
+    # Chia nhỏ theo lô để mỗi phản hồi luôn đủ ngắn để Gemini trả lời trọn vẹn, và nếu 1 lô lỗi thì
+    # chỉ các câu trong lô đó bị ảnh hưởng chứ không phải toàn bộ video.
+    BATCH_SIZE = 40
+    batches = [segments[i : i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
+    # Giới hạn số lô dịch song song để không dồn dập request lên cùng 1 API key trong pool.
+    semaphore = asyncio.Semaphore(3)
 
-    try:
-        raw_reply = await GeminiKeyPool.call_with_failover(
-            db=db,
-            prompt=prompt,
-            system_instruction=system_instruction,
+    async def _translate_batch(batch: List[Dict[str, Any]]) -> Dict[Any, str]:
+        prompt = (
+            "Translate the following list of lines into Vietnamese. Return the result as a JSON array:\n"
+            '[{"id": 0, "vi": "Vietnamese translation"}, ...]\n\n'
+            "Source data:\n"
+            + json.dumps(
+                [
+                    {
+                        "id": s.get("id", i),
+                        "zh": s.get("text", ""),
+                        "duration_sec": round(float(s.get("end", 0.0)) - float(s.get("start", 0.0)), 2),
+                    }
+                    for i, s in enumerate(batch)
+                ],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        async with semaphore:
+            try:
+                raw_reply = await GeminiKeyPool.call_with_failover(
+                    db=db,
+                    prompt=prompt,
+                    system_instruction=system_instruction,
+                )
+                return _parse_translation_reply(raw_reply)
+            except Exception as e:
+                logger.warning(
+                    f"[Translate] Lỗi dịch 1 lô ({len(batch)} câu): {e} — các câu trong lô này sẽ giữ nguyên văn gốc"
+                )
+                return {}
+
+    batch_results = await asyncio.gather(*[_translate_batch(b) for b in batches])
+    trans_map: Dict[Any, str] = {}
+    for m in batch_results:
+        trans_map.update(m)
+
+    # Merge back to segments
+    result = []
+    untranslated_count = 0
+    for i, s in enumerate(segments):
+        seg_id = s.get("id", i)
+        vi_text = trans_map.get(seg_id)
+        if not vi_text:
+            untranslated_count += 1
+            vi_text = s.get("text", "")
+        result.append({
+            **s,
+            "text_vi": vi_text,
+        })
+
+    if untranslated_count:
+        logger.warning(
+            f"[Translate] {untranslated_count}/{len(segments)} câu không dịch được (lỗi API hoặc JSON phản hồi hỏng), "
+            "đang giữ nguyên văn gốc (tiếng Trung) cho các câu này."
         )
 
-        # Extract JSON array
-        json_match = re.search(r"\[.*\]", raw_reply, re.DOTALL)
-        if json_match:
+    return result
+
+
+def _parse_translation_reply(raw_reply: str) -> Dict[Any, str]:
+    """
+    Phân tích phản hồi dịch của Gemini thành map {id: text_vi}.
+    Thử parse cả mảng JSON trước; nếu phản hồi bị cắt giữa chừng (mảng JSON không đóng ngoặc hợp lệ),
+    cố gắng khôi phục từng object hợp lệ riêng lẻ thay vì loại bỏ toàn bộ lô chỉ vì 1-2 object cuối bị lỗi.
+    """
+    json_match = re.search(r"\[.*\]", raw_reply, re.DOTALL)
+    if json_match:
+        try:
             translated_list = json.loads(json_match.group(0))
-            trans_map = {item["id"]: item.get("vi", "") for item in translated_list if "id" in item}
-        else:
-            trans_map = {}
+            return {item["id"]: item.get("vi", "") for item in translated_list if "id" in item}
+        except (json.JSONDecodeError, TypeError, KeyError):
+            pass
 
-        # Merge back to segments
-        result = []
-        for i, s in enumerate(segments):
-            seg_id = s.get("id", i)
-            vi_text = trans_map.get(seg_id) or s.get("text", "")
-            result.append({
-                **s,
-                "text_vi": vi_text,
-            })
-        return result
+    # Khôi phục từng object {"id": ..., "vi": ...} riêng lẻ từ phản hồi bị hỏng/cắt giữa chừng.
+    trans_map: Dict[Any, str] = {}
+    for obj_match in re.finditer(r"\{[^{}]*\}", raw_reply, re.DOTALL):
+        try:
+            item = json.loads(obj_match.group(0))
+            if isinstance(item, dict) and "id" in item:
+                trans_map[item["id"]] = item.get("vi", "")
+        except (json.JSONDecodeError, TypeError):
+            continue
 
-    except Exception as e:
-        # Fallback if translation fails
-        return [
-            {**s, "text_vi": s.get("text", "")} for s in segments
-        ]
+    if trans_map:
+        logger.info(f"[Translate] Khôi phục được {len(trans_map)} câu từ phản hồi JSON bị lỗi/cắt giữa chừng.")
+
+    return trans_map
 
 
 STYLE_INSTRUCTIONS = {

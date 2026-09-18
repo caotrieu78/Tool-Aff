@@ -1,41 +1,44 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-sqlalchemy==2.0.35
-alembic==1.13.3
-pydantic==2.9.2
-pydantic-settings==2.5.2
-python-multipart==0.0.12
-websockets==13.1
-httpx==0.27.2
-cryptography==43.0.1
-apscheduler==3.10.4
-ffmpeg-python==0.2.0
-pillow==10.4.0
-aiofiles==24.1.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-multipart>=0.0.12
+websockets>=13.0
+httpx>=0.27.0
+cryptography>=43.0.0
+apscheduler>=3.10.0
+ffmpeg-python>=0.2.0
+pillow>=10.0.0
+aiofiles>=24.1.0
 aiosqlite>=0.20.0
 greenlet>=3.0.0
-python-dotenv==1.0.1
+python-dotenv>=1.0.0
 
 # AI: dịch thuật / kịch bản (Gemini)
-google-genai==2.7.0
-google-generativeai==0.8.6
+google-genai>=2.7.0
+google-generativeai>=0.8.0
 
 # TTS lồng tiếng
-edge-tts==7.2.8
-soundfile==0.14.0
-pydub==0.25.1
-huggingface_hub==1.31.0
+edge-tts>=7.2.0
+soundfile>=0.14.0
+pydub>=0.25.0
+huggingface_hub>=1.30.0
+
+# VieNeu-TTS (Offline, Vietnamese, 25 giọng preset, Apache 2.0)
+vieneu
 
 # STT / OCR / Vision / Scene detection
-faster-whisper==1.2.1
-easyocr==1.7.2
-opencv-python-headless==5.0.0.93
-numpy==2.2.3
-scenedetect==0.7.1
+faster-whisper>=1.2.0
+easyocr>=1.7.0
+opencv-python-headless>=4.10.0
+numpy>=2.0.0
+scenedetect>=0.7.0
 
 # Scraper thông tin sản phẩm (Shopee/TikTok Shop)
-requests==2.34.2
-beautifulsoup4==4.15.0
+requests>=2.32.0
+beautifulsoup4>=4.12.0
 
 
 

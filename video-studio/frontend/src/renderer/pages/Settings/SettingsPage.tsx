@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { settingsApi, libraryApi, publishApi } from '../../api/client';
 import ConfirmModal from '../../components/ConfirmModal';
+import LicenseSettingsTab from './LicenseSettingsTab';
 
 interface GeminiKeyItem {
   id: number;
@@ -80,12 +81,12 @@ function getEngineDisplay(engine: string): { label: string; badgeClass: string }
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as 'gemini' | 'tts' | 'tiktok') || 'gemini';
-  const [activeTab, setActiveTab] = useState<'gemini' | 'tts' | 'tiktok'>(initialTab);
+  const initialTab = (searchParams.get('tab') as 'gemini' | 'tts' | 'tiktok' | 'license') || 'gemini';
+  const [activeTab, setActiveTab] = useState<'gemini' | 'tts' | 'tiktok' | 'license'>(initialTab);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'tts' || tab === 'gemini' || tab === 'tiktok') {
+    if (tab === 'tts' || tab === 'gemini' || tab === 'tiktok' || tab === 'license') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -760,6 +761,18 @@ export default function SettingsPage() {
           >
             <Share2 size={13} />
             <span>Tài Khoản TikTok Đăng Bài</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('license')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              activeTab === 'license'
+                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldCheck size={13} />
+            <span>Bản Quyền</span>
           </button>
         </div>
       </div>
@@ -1594,6 +1607,9 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Tab 4: License / Bản Quyền (Phase 5) */}
+        {activeTab === 'license' && <LicenseSettingsTab />}
       </div>
     </div>
   );

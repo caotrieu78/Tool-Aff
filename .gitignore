@@ -20,11 +20,15 @@
 
 
 # Storage & Databases & Media
+**/build/
+**/.license_cache.json
 video-studio/backend/storage/library/
 video-studio/backend/storage/custom_voices/
 video-studio/backend/storage/tiktok_profiles/
 video-studio/backend/storage/.secret_key
+video-studio/backend/storage/.license_cache.json
 video-studio/backend/storage/*.db
+video-studio/backend/storage/vieneu_presets_cache.json
 video-studio/backend/*.db
 **/storage/library/
 **/storage/tiktok_profiles/

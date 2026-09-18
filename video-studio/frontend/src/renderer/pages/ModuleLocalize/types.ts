@@ -1,5 +1,15 @@
+export interface CustomAiStyle {
+  id: string;
+  name: string;
+  desc: string;
+  prompt: string;
+  color?: string;
+}
+
 export interface LocalizeSettings {
   aiStyle: string;
+  customAiPrompt?: string;
+  customAiStyles?: CustomAiStyle[];
   voiceId: string;
   voiceSpeed: number;
   syncMode: 'keep_duration' | 'hybrid';
@@ -32,6 +42,8 @@ export interface LocalizeSettings {
 
 export const DEFAULT_LOCALIZE_SETTINGS: LocalizeSettings = {
   aiStyle: 'bán hàng',
+  customAiPrompt: '',
+  customAiStyles: [],
   voiceId: 'vi-VN-HoaiMyNeural',
   voiceSpeed: 1.0,
   syncMode: 'hybrid',

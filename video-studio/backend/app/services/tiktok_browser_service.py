@@ -404,7 +404,15 @@ async def post_video_to_tiktok(
             await _dismiss_popups()
 
             caption_selector = 'div.DraftEditor-editorContainer, div[contenteditable="true"], textarea[placeholder*="caption"], div[data-placeholder*="video"]'
-            caption_box = await page.wait_for_selector(caption_selector, timeout=60000)
+            # Video càng dài -> file càng nặng -> TikTok cần nhiều thời gian hơn để xử lý xong upload
+            # trước khi hiện khung caption. Timeout cố định 60s trước đây dễ báo lỗi giả với video dài/nặng
+            # dù việc tải lên thực chất vẫn đang diễn ra bình thường. Co giãn theo dung lượng file thực tế.
+            try:
+                file_size_mb = v_file.stat().st_size / (1024 * 1024)
+            except OSError:
+                file_size_mb = 0.0
+            caption_wait_ms = min(300_000, max(60_000, 60_000 + int(file_size_mb * 1500)))
+            caption_box = await page.wait_for_selector(caption_selector, timeout=caption_wait_ms)
 
             if not caption_box:
                 await context.close()

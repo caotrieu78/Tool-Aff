@@ -21,7 +21,7 @@ from app.models.publish_schedule import PublishSchedule, PublishStatus
 from app.services.audio_service import extract_audio_wav
 from app.services.stt_service import transcribe_chinese_audio
 from app.services.gemini_service import translate_chinese_segments
-from app.services.tts_service import text_to_speech_file, synthesize_timeline_voiceover
+from app.services.tts_service import text_to_speech_file, synthesize_timeline_voiceover, get_available_voices
 from app.services.compose_service import generate_srt_file, compose_localized_video, compose_affiliate_video
 from app.services.ocr_service import extract_subtitles_from_video_ocr
 from app.services.vision_service import (
@@ -102,7 +102,19 @@ async def run_localize_pipeline(job_id: int):
             return
 
         config = job.config_json or {}
-        style = config.get("ai_style", "đời thường")
+        # Ưu tiên prompt tùy chỉnh nếu người dùng thiết lập phong cách riêng trong cấu hình
+        custom_prompt = str(config.get("ai_style_prompt") or config.get("custom_ai_prompt") or "").strip()
+        raw_style = str(config.get("ai_style", "đời thường")).strip()
+
+        if custom_prompt:
+            style = custom_prompt
+            logger.info(f"[JobRunner] 🎨 Job #{job_id}: Áp dụng Prompt kịch bản tùy chỉnh riêng: '{custom_prompt[:80]}...'")
+        elif raw_style.startswith("custom_"):
+            style = "đời thường"
+            logger.info(f"[JobRunner] 🎨 Job #{job_id}: Phong cách tùy chỉnh không kèm prompt, dùng 'đời thường'")
+        else:
+            style = raw_style
+            logger.info(f"[JobRunner] 🎨 Job #{job_id}: Áp dụng phong cách tiêu chuẩn: '{style}'")
         voice_id = config.get("voice_id", "vi-VN-HoaiMyNeural")
         voice_speed = float(config.get("voice_speed", 1.0))
         
@@ -578,15 +590,15 @@ async def run_affiliate_pipeline(job_id: int):
 
             # Cấu hình phụ đề & giọng đọc
             voice_conf = config.get("voice_id", "random")
-            AFFILIATE_VOICE_POOL = [
-                "vi-VN-HoaiMyNeural",
-                "vi-VN-NamMinhNeural",
-                "diem_trinh",
-                "ngoc_huyen",
-                "mai_linh",
-                "hung_thinh",
-                "phat_tai",
-            ]
+            # Pool giọng "random" cho đa phiên bản: lấy động từ danh sách giọng thật đang khả dụng
+            # (Edge-TTS + VieNeu-TTS — miễn phí, không tốn phí API) thay vì hard-code id cố định,
+            # tránh lặp lại lỗi id "mồ côi" khi một engine bị gỡ khỏi hệ thống (vd Kokoro trước đây).
+            try:
+                AFFILIATE_VOICE_POOL = [
+                    v["id"] for v in get_available_voices() if v.get("engine") in ("edge-tts", "vieneu")
+                ] or ["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]
+            except Exception:
+                AFFILIATE_VOICE_POOL = ["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]
             voice_speed = float(config.get("voice_speed", 1.05))
             bgm_volume = float(config.get("bgm_volume", 0.12))
             voice_volume = float(config.get("voice_volume", 1.0))

@@ -518,3 +518,37 @@ export function connectJobWs(jobId: number, onMessage: (data: any) => void): Web
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   return ws;
 }
+
+// ── License (Phase 5) ─────────────────────────────────────────────────────────
+export interface LicenseStatus {
+  is_valid: boolean;
+  status: 'active' | 'not_activated' | 'blocked' | 'expired' | 'mismatch' | 'tampered' | 'offline_grace' | 'network_error' | 'revoked' | 'error';
+  customer_name: string;
+  expires_at: string;
+  days_left: number;
+  machine_id: string;
+  license_key_masked: string;
+  license_key_raw?: string;
+  message: string;
+  contact: string;
+  // NOTE: google_sheet_id và license_server_url bị ẩn chủ động ở backend
+  // Không bao giờ expose 2 field này ra frontend
+}
+
+export const licenseApi = {
+  getStatus: (force = false) => request<LicenseStatus>(`/license/status${force ? '?force=true' : ''}`),
+  getMachineId: () => request<{ machine_id: string }>('/license/machine-id'),
+  activate: (key: string) =>
+    request<{ success: boolean; message: string; customer_name: string; expires_at: string; days_left: number; machine_id: string }>(
+      '/license/activate',
+      {
+        method: 'POST',
+        body: JSON.stringify({ key }),
+      }
+    ),
+  refresh: () => request<LicenseStatus>('/license/refresh', { method: 'POST' }),
+  deactivate: () => request<{ success: boolean; message: string }>('/license/deactivate', { method: 'POST' }),
+};
+
+
+

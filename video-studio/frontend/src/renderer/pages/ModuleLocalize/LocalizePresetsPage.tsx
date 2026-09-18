@@ -40,9 +40,10 @@ import {
   Mic,
   Type,
   Database,
+  Edit3,
 } from 'lucide-react';
 import { localizeApi, settingsApi, libraryApi, LocalizePreset } from '../../api/client';
-import { LocalizeSettings, DEFAULT_LOCALIZE_SETTINGS, AI_STYLES } from './types';
+import { LocalizeSettings, DEFAULT_LOCALIZE_SETTINGS, AI_STYLES, CustomAiStyle } from './types';
 
 export default function LocalizePresetsPage() {
   const navigate = useNavigate();
@@ -53,40 +54,136 @@ export default function LocalizePresetsPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Active preset being edited
+  // Editing state
   const [editingPreset, setEditingPreset] = useState<LocalizePreset | null>(null);
-
-  // Form state
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('TikTok Shop Affiliate');
+  const [formCategory, setFormCategory] = useState('Mặc định');
   const [formDescription, setFormDescription] = useState('');
   const [formIsDefault, setFormIsDefault] = useState(false);
   const [formSettings, setFormSettings] = useState<LocalizeSettings>(DEFAULT_LOCALIZE_SETTINGS);
 
-  // Subtitle custom text preview
-  const [previewSubText, setPreviewSubText] = useState('Ốp lưng gấu Miffy siêu xinh xắn!');
-
-  // Active config tab
-  const [activeTab, setActiveTab] = useState<'prompt' | 'voice' | 'audio' | 'ocr' | 'sub' | 'dict' | 'all'>('all');
+  // Active section tab for navigation
+  const [activeTab, setActiveTab] = useState<string>('all');
 
   // Voices list for selector
   const [voices, setVoices] = useState<any[]>([]);
   const [voiceSearch, setVoiceSearch] = useState('');
+  const [selectedEngine, setSelectedEngine] = useState<string>('all');
+  const [selectedGender, setSelectedGender] = useState<string>('all');
   const [voiceEngineFilter, setVoiceEngineFilter] = useState<string>('all');
+
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [loadingVoiceId, setLoadingVoiceId] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+
+  // Subtitle custom text preview
+  const [previewSubText, setPreviewSubText] = useState('Ốp lưng gấu Miffy siêu xinh xắn!');
 
   // Dictionary temp input
   const [newOriginalWord, setNewOriginalWord] = useState('');
   const [newReplacementWord, setNewReplacementWord] = useState('');
 
+  // Custom AI Style Modal states
+  const [customStyleModalOpen, setCustomStyleModalOpen] = useState(false);
+  const [editingCustomStyleId, setEditingCustomStyleId] = useState<string | null>(null);
+  const [modalStyleName, setModalStyleName] = useState('');
+  const [modalStyleDesc, setModalStyleDesc] = useState('');
+  const [modalStylePrompt, setModalStylePrompt] = useState('');
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const handleOpenAddCustomStyleModal = () => {
+    setEditingCustomStyleId(null);
+    setModalStyleName('');
+    setModalStyleDesc('');
+    setModalStylePrompt('');
+    setCustomStyleModalOpen(true);
+  };
+
+  const handleOpenEditCustomStyleModal = (style: CustomAiStyle) => {
+    setEditingCustomStyleId(style.id);
+    setModalStyleName(style.name);
+    setModalStyleDesc(style.desc);
+    setModalStylePrompt(style.prompt);
+    setCustomStyleModalOpen(true);
+  };
+
+  const handleSaveCustomStyleModal = () => {
+    if (!modalStyleName.trim()) {
+      showToast('⚠️ Vui lòng nhập tên phong cách!');
+      return;
+    }
+    if (!modalStylePrompt.trim()) {
+      showToast('⚠️ Vui lòng nhập hướng dẫn (Prompt) cho AI!');
+      return;
+    }
+
+    const currentStyles = [...(formSettings.customAiStyles || [])];
+
+    if (editingCustomStyleId) {
+      // Cập nhật phong cách hiện có
+      const updated = currentStyles.map((s) =>
+        s.id === editingCustomStyleId
+          ? {
+              ...s,
+              name: modalStyleName.trim(),
+              desc: modalStyleDesc.trim() || modalStylePrompt.trim().slice(0, 80) + '...',
+              prompt: modalStylePrompt.trim(),
+            }
+          : s
+      );
+      setFormSettings({
+        ...formSettings,
+        customAiStyles: updated,
+        customAiPrompt: formSettings.aiStyle === editingCustomStyleId ? modalStylePrompt.trim() : formSettings.customAiPrompt,
+      });
+      showToast('✅ Đã cập nhật phong cách tùy chỉnh!');
+    } else {
+      // Thêm phong cách mới cho cấu hình này
+      const newId = `custom_${Date.now()}`;
+      const newStyle: CustomAiStyle = {
+        id: newId,
+        name: modalStyleName.trim(),
+        desc: modalStyleDesc.trim() || modalStylePrompt.trim().slice(0, 80) + '...',
+        prompt: modalStylePrompt.trim(),
+      };
+      setFormSettings({
+        ...formSettings,
+        aiStyle: newId,
+        customAiPrompt: modalStylePrompt.trim(),
+        customAiStyles: [...currentStyles, newStyle],
+      });
+      showToast('🎉 Đã thêm và chọn phong cách mới!');
+    }
+
+    setCustomStyleModalOpen(false);
+  };
+
+  const handleDeleteCustomStyle = (styleId: string) => {
+    const updated = (formSettings.customAiStyles || []).filter((s) => s.id !== styleId);
+    let nextAiStyle = formSettings.aiStyle;
+    let nextPrompt = formSettings.customAiPrompt;
+
+    if (formSettings.aiStyle === styleId) {
+      nextAiStyle = 'bán hàng';
+      nextPrompt = '';
+    }
+
+    setFormSettings({
+      ...formSettings,
+      aiStyle: nextAiStyle,
+      customAiPrompt: nextPrompt,
+      customAiStyles: updated,
+    });
+    showToast('🗑️ Đã xóa phong cách tùy chỉnh.');
   };
 
   // Load presets & categories from API
@@ -159,6 +256,9 @@ export default function LocalizePresetsPage() {
     setFormSettings({
       ...DEFAULT_LOCALIZE_SETTINGS,
       ...s,
+      aiStyle: s.ai_style || s.aiStyle || DEFAULT_LOCALIZE_SETTINGS.aiStyle,
+      customAiStyles: s.custom_ai_styles || s.customAiStyles || [],
+      customAiPrompt: s.custom_ai_prompt || s.customAiPrompt || '',
       syncMode: s.sync_mode || s.syncMode || DEFAULT_LOCALIZE_SETTINGS.syncMode,
     });
   };
@@ -205,9 +305,41 @@ export default function LocalizePresetsPage() {
 
     try {
       setLoading(true);
+      const customStyles = formSettings.customAiStyles || [];
+      const currentCustom = customStyles.find((cs) => cs.id === formSettings.aiStyle);
+      const isCustomStyle = Boolean(currentCustom || formSettings.aiStyle.startsWith('custom_'));
+      const activePrompt = currentCustom?.prompt || formSettings.customAiPrompt || '';
+
       const settingsToSave = {
         ...formSettings,
+        ai_style: formSettings.aiStyle,
+        custom_ai_styles: customStyles,
+        custom_ai_prompt: activePrompt,
+        ai_style_prompt: isCustomStyle ? activePrompt : '',
+        voice_id: formSettings.voiceId,
+        voice_speed: formSettings.voiceSpeed,
         sync_mode: formSettings.syncMode,
+        volume_voiceover: formSettings.aiVoiceVolume,
+        keep_original_audio: formSettings.keepOriginalAudio,
+        volume_original: formSettings.bgmVolume,
+        volume_original_voice: formSettings.originalVoiceVolume,
+        cover_old_subtitle: formSettings.coverOldSub,
+        blur_amount: formSettings.blurAmount,
+        blur_method: formSettings.blurMethod,
+        show_subtitles: formSettings.showSubtitles,
+        sub_position_mode: formSettings.subPositionMode,
+        sub_placement: formSettings.subPlacement,
+        auto_fit_sub_size: formSettings.autoFitSubSize,
+        sub_position_percent: formSettings.subPositionPercent,
+        sub_font: formSettings.subFont,
+        sub_font_size: formSettings.subFontSize,
+        sub_color: formSettings.subTextColor,
+        sub_bg_color: formSettings.subBgColor,
+        sub_bg_opacity: formSettings.subBgOpacity,
+        sub_style_type: formSettings.subStyleType,
+        sub_bold: formSettings.subBold,
+        sub_italic: formSettings.subItalic,
+        sub_margin_v: formSettings.subMarginV,
       };
       const res = await localizeApi.updatePreset(editingPreset.id, {
         name: formName.trim(),
@@ -540,15 +672,25 @@ export default function LocalizePresetsPage() {
                     <div className="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
                       <span className="px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono truncate max-w-[160px] font-medium flex items-center gap-1.5">
                         <Volume2 size={12} className="text-indigo-400 shrink-0" />
-                        <span>{st.voice_id ? st.voice_id.replace('gemini-', '').replace('vi-VN-', '') : 'Hoài My'}</span>
+                        <span>{(st.voice_id || st.voiceId) ? (st.voice_id || st.voiceId).replace('gemini-', '').replace('vi-VN-', '') : 'Hoài My'}</span>
                       </span>
-                      <span className="px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium flex items-center gap-1.5">
+                      <span className="px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium flex items-center gap-1.5 max-w-[170px] truncate">
                         <Sparkles size={12} className="text-amber-400 shrink-0" />
-                        <span>{st.ai_style || 'Bán hàng'}</span>
+                        <span className="truncate">
+                          {(() => {
+                            const curStyleId = st.ai_style || st.aiStyle;
+                            const customList = st.custom_ai_styles || st.customAiStyles || [];
+                            const customMatch = customList.find((c: any) => c.id === curStyleId);
+                            if (customMatch) return customMatch.name;
+                            const builtIn = AI_STYLES.find((s) => s.id === curStyleId);
+                            if (builtIn) return builtIn.name.split('/')[0].trim();
+                            return curStyleId || 'Bán hàng';
+                          })()}
+                        </span>
                       </span>
                       <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium flex items-center gap-1.5">
                         <Type size={12} className="text-emerald-400 shrink-0" />
-                        <span>{st.sub_font || 'Oswald'} ({st.sub_font_size || 29}px)</span>
+                        <span>{st.sub_font || st.subFont || 'Oswald'} ({st.sub_font_size || st.subFontSize || 29}px)</span>
                       </span>
                     </div>
                   </div>
@@ -658,26 +800,37 @@ export default function LocalizePresetsPage() {
                     id="section-prompt"
                     className="bg-[#141620] border border-slate-800/90 rounded-3xl p-6 shadow-sm space-y-4"
                   >
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
                       <label className="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
                         <Sparkles size={16} className="text-amber-400" />
                         <span>1. Phong Cách Kịch Bản Dịch (Gemini AI)</span>
                       </label>
-                      <span className="text-xs text-slate-400">
-                        AI tự động biên soạn lại kịch bản cuốn hút theo phong cách đã chọn
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400 hidden sm:inline">
+                          AI tự động biên soạn lại kịch bản cuốn hút theo phong cách đã chọn
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddCustomStyleModal()}
+                          className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        >
+                          <Plus size={14} />
+                          <span>+ Thêm phong cách riêng</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 pt-1">
+                      {/* 8 Phong cách mặc định có sẵn */}
                       {AI_STYLES.map((style) => {
                         const active = formSettings.aiStyle === style.id;
                         return (
                           <div
                             key={style.id}
-                            onClick={() => setFormSettings({ ...formSettings, aiStyle: style.id })}
+                            onClick={() => setFormSettings({ ...formSettings, aiStyle: style.id, customAiPrompt: '' })}
                             className={`p-4 rounded-2xl border cursor-pointer transition select-none flex flex-col justify-between min-h-[110px] ${
                               active
-                                ? 'bg-indigo-600/15 border-indigo-500 shadow-md shadow-indigo-500/10'
+                                ? 'bg-indigo-600/15 border-indigo-500 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/40'
                                 : 'bg-[#0f1118] border-slate-800 hover:border-slate-700 hover:bg-[#161824]'
                             }`}
                           >
@@ -691,7 +844,137 @@ export default function LocalizePresetsPage() {
                           </div>
                         );
                       })}
+
+                      {/* Các phong cách tùy chỉnh riêng của cấu hình này */}
+                      {(formSettings.customAiStyles || []).map((style) => {
+                        const active = formSettings.aiStyle === style.id;
+                        return (
+                          <div
+                            key={style.id}
+                            onClick={() => setFormSettings({
+                              ...formSettings,
+                              aiStyle: style.id,
+                              customAiPrompt: style.prompt,
+                            })}
+                            className={`relative p-4 rounded-2xl border cursor-pointer transition select-none flex flex-col justify-between min-h-[110px] group ${
+                              active
+                                ? 'bg-purple-600/20 border-purple-500 shadow-md shadow-purple-500/20 ring-1 ring-purple-500/50'
+                                : 'bg-[#0f1118] border-purple-900/30 hover:border-purple-600/50 hover:bg-[#161824]'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="text-xs font-bold text-white truncate">{style.name}</span>
+                                  <span className="text-[9px] uppercase font-semibold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">
+                                    Tùy chỉnh
+                                  </span>
+                                </div>
+                                {active && (
+                                  <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse shrink-0 ml-1.5" />
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">{style.desc || style.prompt}</p>
+                            </div>
+
+                            {/* Nút Sửa & Xóa phong cách riêng */}
+                            <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/80 mt-2">
+                              <span className="text-[10px] text-purple-300/70 font-mono truncate max-w-[120px]">
+                                {style.prompt ? 'Đã gán prompt' : 'Chưa có prompt'}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditCustomStyleModal(style);
+                                  }}
+                                  className="p-1 rounded hover:bg-purple-500/20 text-slate-400 hover:text-purple-300 transition"
+                                  title="Chỉnh sửa phong cách này"
+                                >
+                                  <Edit3 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCustomStyle(style.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition"
+                                  title="Xóa phong cách tùy chỉnh này"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Nút bấm Thêm phong cách riêng */}
+                      <div
+                        onClick={() => handleOpenAddCustomStyleModal()}
+                        className="p-4 rounded-2xl border-2 border-dashed border-slate-800 hover:border-purple-500/60 hover:bg-purple-500/5 cursor-pointer transition select-none flex flex-col items-center justify-center min-h-[110px] text-center gap-2 group"
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-slate-800 group-hover:bg-purple-500/20 text-slate-400 group-hover:text-purple-300 flex items-center justify-center transition">
+                          <Plus size={18} />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-slate-300 group-hover:text-white transition block">
+                            + Thêm phong cách riêng
+                          </span>
+                          <span className="text-[10px] text-slate-500 group-hover:text-slate-400 transition">
+                            Tự viết Prompt / Yêu cầu cho AI
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Khung xem & sửa nhanh Prompt của phong cách tùy chỉnh đang chọn */}
+                    {(() => {
+                      const isCustom = formSettings.aiStyle.startsWith('custom_') || (formSettings.customAiStyles || []).some((s) => s.id === formSettings.aiStyle);
+                      if (!isCustom) return null;
+                      const curStyle = (formSettings.customAiStyles || []).find((s) => s.id === formSettings.aiStyle);
+                      return (
+                        <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/30 space-y-2 mt-3">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-purple-300 flex items-center gap-1.5">
+                              <Sparkles size={14} className="text-purple-400" />
+                              Hướng dẫn kịch bản (Prompt) cho phong cách "{curStyle?.name || 'Tùy chỉnh'}":
+                            </span>
+                            {curStyle && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditCustomStyleModal(curStyle)}
+                                className="text-[11px] text-purple-300 hover:text-purple-200 underline font-medium cursor-pointer"
+                              >
+                                Đổi tên / Chỉnh sửa
+                              </button>
+                            )}
+                          </div>
+                          <textarea
+                            value={formSettings.customAiPrompt || curStyle?.prompt || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const updatedList = (formSettings.customAiStyles || []).map((s) =>
+                                s.id === formSettings.aiStyle ? { ...s, prompt: val } : s
+                              );
+                              setFormSettings({
+                                ...formSettings,
+                                customAiPrompt: val,
+                                customAiStyles: updatedList,
+                              });
+                            }}
+                            placeholder="Nhập hướng dẫn chi tiết cho AI (VD: Viết theo phong cách kịch tính, ngắn gọn, xưng hô anh em, tập trung vào công năng sản phẩm...)"
+                            rows={3}
+                            className="w-full bg-[#0d0f17] border border-purple-500/20 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 transition leading-relaxed resize-y font-mono"
+                          />
+                          <p className="text-[10px] text-slate-500">
+                            💡 Mẹo: Gemini AI sẽ tuân thủ chính xác hướng dẫn này khi dịch hoặc sáng tạo kịch bản lồng tiếng cho video.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -709,7 +992,7 @@ export default function LocalizePresetsPage() {
                       <span>2. Giọng Đọc Lồng Tiếng (TTS AI)</span>
                     </label>
                     <span className="text-xs text-slate-400">
-                      Kho 30 giọng Google Gemini 2.5 Pro + Edge TTS, phát thử tức thì
+                      Kho {voices.length} giọng — Gemini, Edge-TTS{voices.some((v) => v.engine === 'vieneu') ? ', VieNeu-TTS' : ''}, phát thử tức thì
                     </span>
                   </div>
 
@@ -733,11 +1016,18 @@ export default function LocalizePresetsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-white">
-                            {formSettings.voiceId.replace('gemini-', 'Gemini ').replace('vi-VN-', '')}
+                            {voices.find((v) => v.id === formSettings.voiceId)?.name ||
+                              formSettings.voiceId.replace('gemini-', 'Gemini ').replace('vi-VN-', '')}
                           </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">
-                            Đang chọn cho cấu hình này
-                          </span>
+                          {voices.find((v) => v.id === formSettings.voiceId) ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">
+                              Đang chọn cho cấu hình này
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
+                              Giọng không còn tồn tại — hãy chọn giọng khác bên dưới
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-400 mt-0.5">
                           {voices.find((v) => v.id === formSettings.voiceId)?.description ||
@@ -779,8 +1069,8 @@ export default function LocalizePresetsPage() {
                         className="w-full pl-9 pr-3.5 py-2 text-xs bg-[#0b0d13] border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      {['all', 'gemini', 'edge-tts'].map((eng) => (
+                    <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                      {['all', ...Array.from(new Set(voices.map((v) => v.engine)))].map((eng) => (
                         <button
                           key={eng}
                           type="button"
@@ -792,10 +1082,14 @@ export default function LocalizePresetsPage() {
                           }`}
                         >
                           {eng === 'all'
-                            ? 'Tất cả'
+                            ? `Tất cả (${voices.length})`
                             : eng === 'gemini'
-                            ? 'Gemini 2.5 Pro (30 giọng)'
-                            : 'Edge-TTS (2 giọng)'}
+                            ? `Gemini 2.5 Pro (${voices.filter((v) => v.engine === 'gemini').length} giọng)`
+                            : eng === 'edge-tts'
+                            ? `Edge-TTS (${voices.filter((v) => v.engine === 'edge-tts').length} giọng)`
+                            : eng === 'vieneu'
+                            ? `VieNeu-TTS (${voices.filter((v) => v.engine === 'vieneu').length} giọng)`
+                            : `${eng} (${voices.filter((v) => v.engine === eng).length} giọng)`}
                         </button>
                       ))}
                     </div>
@@ -1580,6 +1874,97 @@ export default function LocalizePresetsPage() {
           )}
         </div>
       </div>
+
+      {/* Modal Thêm / Sửa Phong Cách Tùy Chỉnh Riêng Cho Cấu Hình */}
+      {customStyleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-lg bg-[#161a24] border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden text-slate-100 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center shadow-inner">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">
+                    {editingCustomStyleId ? 'Chỉnh Sửa Phong Cách Tùy Chỉnh' : 'Thêm Phong Cách Kịch Bản Mới'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Lưu vào cấu hình: <span className="text-purple-300 font-semibold">{formName || 'Cấu hình mẫu'}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCustomStyleModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Tên Phong Cách: <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={modalStyleName}
+                  onChange={(e) => setModalStyleName(e.target.value)}
+                  placeholder="VD: Bán đồ ăn vặt / Review công nghệ GenZ / ..."
+                  className="w-full bg-[#0b0d14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 transition font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Mô Tả Ngắn (Hiển thị tóm tắt trên thẻ):
+                </label>
+                <input
+                  type="text"
+                  value={modalStyleDesc}
+                  onChange={(e) => setModalStyleDesc(e.target.value)}
+                  placeholder="VD: Ngôn từ gần gũi, khơi gợi nhu cầu, kích thích chốt đơn..."
+                  className="w-full bg-[#0b0d14] border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-purple-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Hướng Dẫn Kịch Bản Cho Gemini AI (Prompt): <span className="text-rose-400">*</span>
+                </label>
+                <textarea
+                  value={modalStylePrompt}
+                  onChange={(e) => setModalStylePrompt(e.target.value)}
+                  placeholder="VD: Đóng vai người bạn thân thiết, nói chuyện chân thật tự nhiên. Dùng từ ngữ gần gũi, giật gân ở đầu video để giữ chân người xem. Câu từ ngắn gọn, dứt khoát dưới 15 chữ, nhịp điệu nhanh và hấp dẫn..."
+                  rows={4}
+                  className="w-full bg-[#0b0d14] border border-slate-700/80 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 transition leading-relaxed resize-y font-mono"
+                />
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                  <span>Gemini AI sẽ tuân thủ nghiêm ngặt hướng dẫn này khi dịch & viết thoại.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setCustomStyleModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCustomStyleModal}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition cursor-pointer"
+              >
+                {editingCustomStyleId ? 'Cập Nhật Phong Cách' : 'Lưu & Chọn Phong Cách Này'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

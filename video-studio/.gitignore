@@ -2,10 +2,14 @@
 backend/venv/
 backend/__pycache__/
 backend/*.pyc
+backend/build/
+backend/dist/
 backend/storage/library/
 backend/storage/*.db
 backend/storage/.secret_key
+backend/storage/.license_cache.json
 backend/storage/custom_voices/
+backend/storage/vieneu_presets_cache.json
 
 frontend/node_modules/
 frontend/dist/
