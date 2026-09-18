@@ -1114,7 +1114,7 @@ export default function SettingsPage() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Tất cả ({voices.filter(v => v.engine !== 'omnivoice' || v.is_custom).length})
+                    Tất cả ({voices.length})
                   </button>
                   <button
                     type="button"
@@ -1314,9 +1314,6 @@ export default function SettingsPage() {
               {(() => {
                 const filtered = voices
                   .filter((v) => {
-                    // Loại bỏ hoàn toàn giọng OmniVoice và Kokoro mặc định
-                    if (v.engine === 'omnivoice' && !v.is_custom) return false;
-                    if (v.engine === 'kokoro') return false;
                     if (selectedEngine === 'custom') return !!v.is_custom;
                     if (selectedEngine === 'gemini') return v.engine === 'gemini';
                     if (selectedEngine !== 'all') return v.engine === selectedEngine && !v.is_custom;

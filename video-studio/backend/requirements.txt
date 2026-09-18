@@ -37,12 +37,5 @@ scenedetect==0.7.1
 requests==2.34.2
 beautifulsoup4==4.15.0
 
-# Deep learning backend cho Kokoro-Vietnamese / OmniVoice TTS
-torch==2.13.0
-torchaudio==2.11.0
 
-# --- Không cài qua PyPI, cần cài riêng (xem README) ---
-# kokoro-vietnamese  -> nằm trong repo tại backend/Kokoro-Vietnamese/, cài bằng:
-#                       pip install -e ./Kokoro-Vietnamese
-# omnivoice          -> package ngoài project, cài bằng:
-#                       pip install -e /duong-dan-toi-OmniVoice
+

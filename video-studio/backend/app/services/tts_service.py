@@ -354,40 +354,13 @@ VOICES_PRESET: list[dict[str, Any]] = [
     },
 ]
 
-KOKORO_VOICE_IDS: set[str] = set()
-
 GEMINI_VOICE_IDS = {
     v["id"] for v in VOICES_PRESET if v.get("engine") == "gemini"
 }
 
-OMNIVOICE_PRESETS: dict[str, dict[str, Any]] = {}
-
-
-OMNIVOICE_FALLBACK_VOICES: dict[str, str] = {
-    "omni_nam_tram": "vi-VN-NamMinhNeural",
-    "omni_mc_chuyen_nghiep": "vi-VN-NamMinhNeural",
-    "omni_nu_truyen_cam": "vi-VN-HoaiMyNeural",
-    "omni_nu_nhe_nhang": "vi-VN-HoaiMyNeural",
-}
-
-
 def get_available_voices() -> list[dict[str, Any]]:
-    """Trả về danh sách tất cả giọng đọc tiếng Việt (Gemini 2.5 Pro, Edge-TTS, VieNeu-TTS, Custom)."""
-    voices = list(VOICES_PRESET)
-
-    try:
-        from app.services.vieneu_tts_service import get_vieneu_preset_voices
-        voices += get_vieneu_preset_voices()
-    except Exception as e:  # noqa: BLE001
-        logger.debug(f"[VieNeu-TTS] Bỏ qua danh sách preset (chưa cài hoặc lỗi): {e}")
-
-    try:
-        from app.services.omnivoice_service import load_registry
-        voices += load_registry()
-    except Exception as e:  # noqa: BLE001
-        logger.debug(f"[Custom Voices] Không thể nạp registry: {e}")
-
-    return voices
+    """Trả về danh sách tất cả giọng đọc tiếng Việt (Gemini 2.5 Pro, Edge-TTS)."""
+    return list(VOICES_PRESET)
 
 
 def format_rate_string(speed: float) -> str:
@@ -444,90 +417,7 @@ async def text_to_speech_file(
             fallback_voice = "vi-VN-HoaiMyNeural" if is_female else "vi-VN-NamMinhNeural"
             return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
 
-    # 0.5. Nếu là giọng preset của VieNeu-TTS (offline, mã nguồn mở, hỗ trợ emotion cues)
-    if voice.startswith("vieneu_"):
-        try:
-            from app.services.vieneu_tts_service import _vieneu_manager, get_preset_voice_name_map
-            voice_name_map = get_preset_voice_name_map()
-            raw_voice_name = voice_name_map.get(voice)
-            if not raw_voice_name:
-                raise ValueError(f"Không tìm thấy giọng VieNeu-TTS preset: {voice}")
-            logger.info(f"🎙️ [VieNeu-TTS] Đang sinh audio giọng '{raw_voice_name}' cho: {text[:60]}...")
-            return await asyncio.to_thread(
-                _vieneu_manager.synthesize_to_file,
-                text=text,
-                output_path=output_path,
-                voice=raw_voice_name,
-                speed=speed,
-            )
-        except Exception as vieneu_err:
-            logger.warning(f"[VieNeu-TTS] Lỗi ({vieneu_err}), chuyển sang Edge-TTS dự phòng")
-            fallback_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
-            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
-
-    # 1. Nếu là giọng tùy ý do người dùng nhân bản (Custom Voice Clone)
-    if voice.startswith("custom_"):
-        try:
-            from app.services.omnivoice_service import get_custom_voice_by_id
-            custom_voice = get_custom_voice_by_id(voice)
-            if not custom_voice:
-                raise ValueError(f"Không tìm thấy thông tin giọng tùy ý: {voice}")
-            ref_audio_val: str | None = str(custom_voice["ref_audio"]) if custom_voice.get("ref_audio") else None
-            ref_text_val: str | None = str(custom_voice["ref_text"]) if custom_voice.get("ref_text") else None
-            custom_engine = str(custom_voice.get("engine") or "omnivoice")
-
-            if custom_engine == "vieneu":
-                from app.services.vieneu_tts_service import _vieneu_manager
-                logger.info(f"🎙️ [VieNeu-TTS Clone] Nhân bản giọng '{voice}' cho: {text[:60]}...")
-                return await asyncio.to_thread(
-                    _vieneu_manager.synthesize_to_file,
-                    text=text,
-                    output_path=output_path,
-                    ref_audio_path=ref_audio_val,
-                    speed=speed,
-                )
-
-            from app.services.omnivoice_service import _omnivoice_manager
-            return await asyncio.to_thread(
-                _omnivoice_manager.synthesize_to_file,
-                text=text,
-                output_path=output_path,
-                ref_audio_path=ref_audio_val,
-                ref_text=ref_text_val,
-                speed=speed,
-            )
-        except Exception as custom_err:
-            logger.warning(f"[Custom Voice] Nhân bản giọng lỗi ({custom_err}), chuyển sang Edge-TTS")
-            fallback_voice = "vi-VN-NamMinhNeural"
-            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
-
-    # 2. Nếu là giọng Preset của OmniVoice AI
-    if voice in OMNIVOICE_PRESETS:
-        fallback_voice = OMNIVOICE_FALLBACK_VOICES.get(
-            voice,
-            "vi-VN-NamMinhNeural" if "nam" in voice else "vi-VN-HoaiMyNeural",
-        )
-        try:
-            from app.services.omnivoice_service import _omnivoice_manager
-            preset = OMNIVOICE_PRESETS[voice]
-            instruct_val: str | None = str(preset["instruct"]) if preset.get("instruct") else None
-            return await asyncio.to_thread(
-                _omnivoice_manager.synthesize_to_file,
-                text=text,
-                output_path=output_path,
-                instruct=instruct_val,
-                speed=speed,
-            )
-        except Exception as omni_err:
-            logger.info(f"[OmniVoice] Fallback sang Edge-TTS '{fallback_voice}' chất lượng cao: {omni_err}")
-            return await text_to_speech_file(
-                text=text,
-                output_path=output_path,
-                voice=fallback_voice,
-                speed=speed,
-            )
-
-    # 3. Mặc định sử dụng Edge-TTS (Microsoft Neural Studio Voice)
+    # 1. Mặc định sử dụng Edge-TTS (Microsoft Neural Studio Voice)
     if edge_tts is not None:
         rate_str = format_rate_string(speed)
         for attempt in range(3):
@@ -633,7 +523,7 @@ async def synthesize_timeline_voiceover(
                     await asyncio.sleep(0.3)
 
             if not success:
-                # Dự phòng bằng Edge-TTS NamMinh/HoaiMy hoặc Kokoro
+                # Dự phòng bằng Edge-TTS NamMinh/HoaiMy
                 fb_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
                 try:
                     await text_to_speech_file(

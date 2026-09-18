@@ -13,13 +13,6 @@ from app.core.crypto import encrypt_value, decrypt_value
 from app.models.gemini_key import GeminiApiKey, GeminiKeyStatus
 from app.services.gemini_service import test_gemini_key, GeminiKeyPool
 from app.services.tts_service import get_available_voices, get_or_create_voice_preview
-from app.services.omnivoice_service import (
-    load_registry,
-    add_custom_voice,
-    delete_custom_voice,
-    get_custom_voices_dir,
-    _omnivoice_manager,
-)
 
 router = APIRouter()
 
@@ -292,94 +285,30 @@ async def list_tts_voices():
     Lấy danh sách tất cả giọng đọc:
     - Gemini 2.5 Pro TTS (Google Cloud)
     - Edge-TTS (Microsoft Cloud)
+    - VieNeu-TTS (Offline, mã nguồn mở — chỉ nạp model 1 lần đầu để liệt kê preset)
     - Custom Voices (Giọng do người dùng tạo)
     """
-    voices = get_available_voices()
+    # Chạy trong thread riêng vì lần đầu có thể phải nạp model VieNeu-TTS để liệt kê preset,
+    # tránh chặn event loop chính của FastAPI khi có nhiều client cùng gọi API này.
+    voices = await asyncio.to_thread(get_available_voices)
     return {"voices": voices}
 
 
 @router.get("/tts-preview/{voice_id:path}")
 async def get_tts_preview(voice_id: str):
     """Lấy URL audio nghe thử mẫu của giọng đọc."""
-    # Custom voice: trả về file trực tiếp
-    if voice_id.startswith("custom_"):
-        sample_path = get_custom_voices_dir() / voice_id / "sample.mp3"
-        if sample_path.exists():
-            return {"voice_id": voice_id, "audio_url": f"/api/settings/custom-voices/{voice_id}/sample"}
-        raise HTTPException(status_code=404, detail="Sample chưa sẵn sàng cho giọng này")
-
     preview_url = await get_or_create_voice_preview(voice_id)
     return {"voice_id": voice_id, "audio_url": preview_url}
 
 
 # ─────────────────────────────────────────────────────────────────
-# Custom Voice (Voice Cloning) API
+# Custom Voice API (Empty/Disabled)
 # ─────────────────────────────────────────────────────────────────
 
 @router.get("/custom-voices")
 async def list_custom_voices():
-    """Lấy danh sách giọng custom do người dùng tạo."""
-    return {"voices": load_registry()}
-
-
-@router.post("/custom-voices")
-async def create_custom_voice(
-    name: str = Form(...),
-    gender: str = Form("Female"),
-    ref_text: Optional[str] = Form(None),
-    ref_audio: UploadFile = File(...),
-):
-    """
-    Tạo giọng tùy ý mới từ file audio mẫu.
-    - name: Tên giọng hiển thị
-    - gender: Male / Female
-    - ref_text: Nội dung audio mẫu (tuỳ chọn — sẽ tự nhận diện nếu không cung cấp)
-    - ref_audio: File âm thanh mẫu (mp3/wav/m4a, 3s-20s)
-    """
-    allowed_types = {"audio/mpeg", "audio/wav", "audio/mp4", "audio/x-m4a", "audio/ogg"}
-    if ref_audio.content_type and ref_audio.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Định dạng file không hợp lệ: {ref_audio.content_type}. Chấp nhận: mp3, wav, m4a",
-        )
-
-    audio_bytes = await ref_audio.read()
-    if len(audio_bytes) < 10_000:  # < 10KB
-        raise HTTPException(status_code=400, detail="File audio quá nhỏ (tối thiểu 3 giây)")
-
-    try:
-        import asyncio
-        voice_item = await asyncio.to_thread(
-            add_custom_voice,
-            name=name.strip(),
-            gender=gender,
-            ref_audio_bytes=audio_bytes,
-            ref_audio_filename=ref_audio.filename or "upload.wav",
-            ref_text=ref_text.strip() if ref_text else None,
-        )
-        return {"success": True, "voice": voice_item}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi tạo giọng: {str(e)}")
-
-
-@router.delete("/custom-voices/{voice_id}")
-async def remove_custom_voice(voice_id: str):
-    """Xóa giọng tùy ý đã tạo."""
-    if not voice_id.startswith("custom_"):
-        raise HTTPException(status_code=400, detail="Chỉ có thể xóa giọng tùy ý (custom_*)")
-    ok = delete_custom_voice(voice_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Không tìm thấy giọng này")
-    return {"success": True, "message": f"Đã xóa giọng {voice_id}"}
-
-
-@router.get("/custom-voices/{voice_id}/sample")
-async def stream_custom_voice_sample(voice_id: str):
-    """Phát audio nghe thử của giọng custom."""
-    sample_path = get_custom_voices_dir() / voice_id / "sample.mp3"
-    if not sample_path.exists():
-        raise HTTPException(status_code=404, detail="File sample chưa tồn tại")
-    return FileResponse(str(sample_path), media_type="audio/mpeg")
+    """Lấy danh sách giọng custom."""
+    return {"voices": []}
 
 
 # ── TikTok Channels (Cấu Hình Kênh TikTok Đăng Bài) ──────────────────

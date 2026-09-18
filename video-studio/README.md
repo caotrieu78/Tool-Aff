@@ -57,6 +57,6 @@ Electron sẽ tự động spawn Python backend khi khởi động.
 |-------|-----------|
 | **Frontend** | Electron + React 18 + TypeScript + TailwindCSS + Zustand |
 | **Backend** | Python + FastAPI + SQLAlchemy + SQLite |
-| **AI** | Gemini API + PaddleOCR + faster-whisper + Kokoro-TTS/Edge-TTS |
+| **AI** | Gemini API + PaddleOCR + faster-whisper + Gemini-TTS/Edge-TTS |
 | **Video** | FFmpeg + OpenCV + PySceneDetect |
 | **Đăng bài** | TikTok Content Posting API + APScheduler |
