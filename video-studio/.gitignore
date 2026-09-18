@@ -1,0 +1,17 @@
+# Root .gitignore cho video-studio/
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/storage/library/
+backend/storage/*.db
+backend/storage/.secret_key
+backend/storage/custom_voices/
+
+frontend/node_modules/
+frontend/dist/
+frontend/out/
+frontend/.vite/
+
+.DS_Store
+*.log
+.env

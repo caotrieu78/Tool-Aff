@@ -1,0 +1,44 @@
+[
+  {
+    "id": 7,
+    "name": "Nguyễn Cao Triều",
+    "username": "@caotrieu78",
+    "platform_source": "tiktok",
+    "status": "active",
+    "is_active": true,
+    "time_slots": [
+      "11:00",
+      "14:00",
+      "19:00",
+      "21:30"
+    ],
+    "linked_channel_ids": [
+      2
+    ],
+    "linked_category_ids": [
+      1
+    ],
+    "publish_headless": true
+  },
+  {
+    "id": 8,
+    "name": "Mẹo hay mỗi ngày",
+    "username": "@meohaymoingay63",
+    "platform_source": "tiktok",
+    "status": "active",
+    "is_active": true,
+    "time_slots": [
+      "11:00",
+      "14:00",
+      "19:00",
+      "21:30"
+    ],
+    "linked_channel_ids": [
+      2
+    ],
+    "linked_category_ids": [
+      1
+    ],
+    "publish_headless": true
+  }
+]

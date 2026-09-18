@@ -1,0 +1,11 @@
+{
+  "venvPath": "video-studio/backend",
+  "venv": "venv",
+  "extraPaths": [
+    "video-studio/backend",
+    "video-studio/backend/app",
+    "video-studio/backend/Kokoro-Vietnamese/src",
+    "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages",
+    "/Users/nguyencaotrieu/Documents/Voice/OmniVoice"
+  ]
+}

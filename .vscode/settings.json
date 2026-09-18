@@ -1,0 +1,17 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/video-studio/backend/venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/video-studio/backend",
+    "${workspaceFolder}/video-studio/backend/app"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/video-studio/backend"
+  ],
+  "typescript.tsdk": "video-studio/frontend/node_modules/typescript/lib",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  }
+}

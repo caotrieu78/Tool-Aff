@@ -1,0 +1,50 @@
+# Virtual Environment
+**/venv/
+**/.venv/
+**/env/
+
+# Python caches
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+**/.ruff_cache/
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Node & Frontend Build
+**/node_modules/
+**/dist/
+**/out/
+**/.vite/
+
+# Kokoro TTS (Cloned repo with heavy model weights > 200MB)
+video-studio/backend/Kokoro-Vietnamese/
+**/Kokoro-Vietnamese/
+
+# Storage & Databases & Media
+video-studio/backend/storage/library/
+video-studio/backend/storage/custom_voices/
+video-studio/backend/storage/tiktok_profiles/
+video-studio/backend/storage/.secret_key
+video-studio/backend/storage/*.db
+video-studio/backend/*.db
+**/storage/library/
+**/storage/tiktok_profiles/
+**/storage/custom_voices/
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Logs & Secrets
+*.log
+.env
+.env.*
+!.env.example
+
+# OS & Temp
+.DS_Store
+**/.DS_Store
+Thumbs.db
+~$*
+*.tmp
+*.bak

@@ -1,0 +1,14 @@
+search-path = [
+    ".",
+    "app",
+    "Kokoro-Vietnamese/src",
+    "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages",
+    "/Users/nguyencaotrieu/Documents/Voice/OmniVoice",
+]
+infer-with-first-use = false
+
+[errors]
+unnecessary-type-conversion = "ignore"
+deprecated = "ignore"
+bad-override-mutable-attribute = "ignore"
+bad-assignment = "ignore"
