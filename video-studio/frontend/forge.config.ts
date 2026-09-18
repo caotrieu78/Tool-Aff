@@ -17,6 +17,8 @@ const config: ForgeConfig = {
     name: 'Video Studio',
     extraResource: [
       backendDistPath,
+    ],
+  },
   rebuildConfig: {},
   hooks: {
     postPackage: async (forgeConfig, packageResult) => {

@@ -78,6 +78,14 @@ function spawnBackend() {
     runArgs = [];
   }
 
+  if (!isWin && fs.existsSync(pythonCmd)) {
+    try {
+      fs.chmodSync(pythonCmd, 0o755);
+    } catch (err) {
+      console.warn('[Backend] chmodSync warning:', err);
+    }
+  }
+
   console.log(`[Backend] Spawning: ${pythonCmd} in ${backendDir}`);
 
   try {

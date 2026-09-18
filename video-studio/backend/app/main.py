@@ -30,16 +30,6 @@ async def lifespan(app: FastAPI):
     # Khởi chạy background publish worker quét lịch đăng tự động
     _publish_worker_task = asyncio.create_task(start_publish_worker())
 
-    # Warm-up model VieNeu-TTS ở nền ngay khi backend khởi động (nếu đã cài đặt), để lần đầu
-    # người dùng bấm nghe thử/tạo giọng không phải chờ nạp model (~10-20s) ngay lúc đó.
-    try:
-        from app.services.vieneu_tts_service import is_vieneu_available, _vieneu_manager
-        if is_vieneu_available():
-            asyncio.create_task(asyncio.to_thread(_vieneu_manager._get_engine))
-            logger.info("🔥 Đang warm-up model VieNeu-TTS ở nền...")
-    except Exception as e:  # noqa: BLE001
-        logger.debug(f"[VieNeu-TTS] Bỏ qua warm-up: {e}")
-
     yield
 
     if _publish_worker_task and not _publish_worker_task.done():

@@ -9,6 +9,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 _IS_FROZEN = getattr(sys, "frozen", False)
 _ENV_FILE = "" if _IS_FROZEN else str(BASE_DIR / ".env")
 
+# Thư mục dữ liệu: Production dùng ~/.video_studio (luôn có quyền ghi trên macOS & Windows),
+# Dev dùng backend/storage/
+if _IS_FROZEN:
+    DATA_DIR = Path.home() / ".video_studio"
+else:
+    DATA_DIR = BASE_DIR / "storage"
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class Settings(BaseSettings):
     # App
@@ -16,10 +25,10 @@ class Settings(BaseSettings):
     DEBUG: bool = not _IS_FROZEN  # Tắt debug mode trong production
 
     # Database
-    DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/storage/video_studio.db"
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{DATA_DIR}/video_studio.db"
 
     # Storage
-    STORAGE_DIR: Path = BASE_DIR / "storage" / "library"
+    STORAGE_DIR: Path = DATA_DIR / "library"
 
     # Gemini (managed via DB key pool, but fallback env key)
     GEMINI_API_KEY: str = ""
@@ -49,7 +58,7 @@ class Settings(BaseSettings):
     # Để thay đổi: sửa tại đây rồi build lại binary.
     GOOGLE_SHEET_ID: str = "1p5hu9mp_sQ649i3XsoLLjsEt4FxlKX7hTHS1CQq6Jkg"
     LICENSE_SERVER_URL: str = "https://script.google.com/macros/s/AKfycbyywF3FE7it_rpO3wCHAP4idHcr1vvVNeAw4SZXBb0iVBAIPOgxreyzFyv_iQqblAhd/exec"
-    LICENSE_CACHE_FILE: Path = BASE_DIR / "storage" / ".license_cache.json"
+    LICENSE_CACHE_FILE: Path = DATA_DIR / ".license_cache.json"
     LICENSE_GRACE_HOURS: int = 72  # Cho phép dùng offline 72h sau lần verify online gần nhất
     LICENSE_ADMIN_CONTACT: str = "Liên hệ Zalo / Hotline Cao Triều: 0386.690.764 để kích hoạt hoặc gia hạn bản quyền."
 
