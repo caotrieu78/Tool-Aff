@@ -17,7 +17,7 @@ import SettingsPage from './pages/Settings/SettingsPage';
 const NAV_ITEMS = [
   { to: '/library',   icon: LayoutGrid,    label: 'Thư Viện' },
   { to: '/localize',  icon: Wand2,         label: 'Lồng Tiếng' },
-  { to: '/affiliate', icon: ShoppingBag,   label: 'Affiliate' },
+  // { to: '/affiliate', icon: ShoppingBag,   label: 'Affiliate' }, // Tạm thời ẩn để phát triển tính năng
   { to: '/editor',    icon: Film,          label: 'Hậu Kỳ & Lên Lịch' },
   { to: '/scheduler', icon: CalendarDays,  label: 'Lịch Đăng' },
 ];
