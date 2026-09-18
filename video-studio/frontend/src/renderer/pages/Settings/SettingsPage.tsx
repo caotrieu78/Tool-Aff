@@ -1092,22 +1092,22 @@ export default function SettingsPage() {
         {activeTab === 'tts' && (
           <div className="space-y-6">
             {/* Engine Picker Cards */}
-            <div className="bg-[#161922] border border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-[#161922] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Cpu size={16} className="text-indigo-400" />
-                    Công Nghệ Lồng Tiếng (TTS Engines)
+                    <span>Công Nghệ Lồng Tiếng</span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Hỗ trợ Cloud siêu tốc độ (Edge-TTS), Model mã nguồn mở (Kokoro) và Zero-Shot Voice Cloning (OmniVoice AI)
+                    Lọc danh sách giọng đọc theo động cơ TTS
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs flex-wrap">
+                <div className="flex items-center gap-1 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs flex-wrap">
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('all')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'all'
                         ? 'bg-indigo-600 text-white'
                         : 'text-slate-400 hover:text-white'
@@ -1118,41 +1118,41 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('gemini')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
                       selectedEngine === 'gemini'
                         ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
                         : 'text-slate-400 hover:text-amber-300'
                     }`}
                   >
-                    <Sparkles size={13} className={selectedEngine === 'gemini' ? 'text-slate-950' : 'text-amber-400'} />
-                    <span>Gemini 2.5 Pro ({voices.filter(v => v.engine === 'gemini').length})</span>
+                    <Sparkles size={12} className={selectedEngine === 'gemini' ? 'text-slate-950' : 'text-amber-400'} />
+                    <span>Gemini ({voices.filter(v => v.engine === 'gemini').length})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('omnivoice')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'omnivoice'
                         ? 'bg-emerald-600 text-white'
                         : 'text-slate-400 hover:text-emerald-300'
                     }`}
                   >
-                    OmniVoice AI ({voices.filter(v => v.engine === 'omnivoice' && !v.is_custom).length})
+                    OmniVoice ({voices.filter(v => v.engine === 'omnivoice' && !v.is_custom).length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('custom')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'custom'
                         ? 'bg-rose-600 text-white'
                         : 'text-slate-400 hover:text-rose-300'
                     }`}
                   >
-                    Giọng của tôi ({voices.filter(v => v.is_custom).length})
+                    Của tôi ({voices.filter(v => v.is_custom).length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('kokoro')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'kokoro'
                         ? 'bg-purple-600 text-white'
                         : 'text-slate-400 hover:text-white'
@@ -1163,7 +1163,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedEngine('edge-tts')}
-                    className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                       selectedEngine === 'edge-tts'
                         ? 'bg-indigo-600 text-white'
                         : 'text-slate-400 hover:text-white'
@@ -1174,160 +1174,160 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 {/* Gemini 2.5 Pro TTS Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'gemini' ? 'all' : 'gemini')}
-                  className={`p-4 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
                     selectedEngine === 'gemini'
                       ? 'border-amber-500/80 bg-amber-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-75 hover:opacity-100'
+                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles size={14} className="text-amber-400" />
-                        Gemini 2.5 Pro (Studio Voice)
+                        <Sparkles size={13} className="text-amber-400" />
+                        Gemini Pro
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-semibold">
                         Studio AI
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      30 giọng đọc Studio cao cấp (14 Nữ, 16 Nam) từ Google Gemini. Tự nhiên, truyền cảm, độ biểu cảm phong phú.
+                    <p className="text-xs text-slate-300 leading-normal">
+                      30 giọng phòng thu cao cấp từ Google Cloud.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-amber-300 flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-amber-300 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} />
-                      Cloud AI Studio
+                      <CheckCircle2 size={12} />
+                      Google Cloud
                     </span>
-                    <span className="font-semibold text-slate-400">30 Giọng</span>
+                    <span className="font-semibold text-slate-400">30 giọng</span>
                   </div>
                 </div>
 
                 {/* Edge-TTS Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'edge-tts' ? 'all' : 'edge-tts')}
-                  className={`p-4 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
                     selectedEngine === 'edge-tts'
                       ? 'border-indigo-500/80 bg-indigo-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-75 hover:opacity-100'
+                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Zap size={14} className="text-indigo-400" />
-                        Edge-TTS (Cloud Neural)
+                        <Zap size={13} className="text-indigo-400" />
+                        Edge-TTS
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
                         Sẵn sàng
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Giọng đọc tự nhiên, độ trong trẻo cao, phát âm tiếng Việt chuẩn Bắc. Tốc độ chuyển đổi tức thì, không tốn tài nguyên GPU của máy.
+                    <p className="text-xs text-slate-300 leading-normal">
+                      Tốc độ tức thì, phát âm tự nhiên chuẩn Bắc.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-indigo-300 flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-indigo-300 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} />
-                      Microsoft Neural Cloud
+                      <CheckCircle2 size={12} />
+                      Microsoft Cloud
                     </span>
-                    <span className="font-semibold text-slate-400">2 Giọng</span>
+                    <span className="font-semibold text-slate-400">2 giọng</span>
                   </div>
                 </div>
 
                 {/* Kokoro-Vietnamese Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'kokoro' ? 'all' : 'kokoro')}
-                  className={`p-4 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
                     selectedEngine === 'kokoro'
                       ? 'border-purple-500/80 bg-purple-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-75 hover:opacity-100'
+                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Sparkles size={14} className="text-purple-400" />
-                        Kokoro-Vietnamese (Local AI)
+                        <Sparkles size={13} className="text-purple-400" />
+                        Kokoro Local
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-semibold">
-                        Mã Nguồn Mở
+                        Offline
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Model TTS mã nguồn mở chạy local hoàn toàn. Đa dạng giọng đọc Bắc, Trung, Nam cực kỳ tự nhiên, phong cách đa dạng phù hợp affiliate và review.
+                    <p className="text-xs text-slate-300 leading-normal">
+                      Mã nguồn mở chạy trực tiếp trên máy tính, đủ 3 miền.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-purple-300 flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-purple-300 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} />
-                      Local CPU/MPS
+                      <CheckCircle2 size={12} />
+                      Local CPU
                     </span>
-                    <span className="font-semibold text-slate-400">12 Giọng</span>
+                    <span className="font-semibold text-slate-400">12 giọng</span>
                   </div>
                 </div>
 
                 {/* OmniVoice Card */}
                 <div
                   onClick={() => setSelectedEngine(selectedEngine === 'omnivoice' ? 'all' : 'omnivoice')}
-                  className={`p-4 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
+                  className={`p-3.5 rounded-xl border-2 transition cursor-pointer flex flex-col justify-between ${
                     selectedEngine === 'omnivoice'
                       ? 'border-emerald-500/80 bg-emerald-500/10 shadow-sm'
-                      : 'border-slate-800 bg-[#12151e] opacity-75 hover:opacity-100'
+                      : 'border-slate-800 bg-[#12151e] opacity-80 hover:opacity-100'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Mic size={14} className="text-emerald-400" />
-                        OmniVoice AI (Zero-Shot)
+                        <Mic size={13} className="text-emerald-400" />
+                        OmniVoice AI
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
-                        Diffusion LM
+                        Zero-Shot
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      Model thế hệ mới hỗ trợ nhân bản giọng bất kỳ (Voice Cloning) và 4 giọng Studio cao cấp. Tự động thích ứng GPU (MPS trên Mac, CUDA trên Windows).
+                    <p className="text-xs text-slate-300 leading-normal">
+                      Nhân bản giọng từ tệp thu âm và 4 giọng cao cấp.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-emerald-300 flex items-center justify-between">
+                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] text-emerald-300 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} />
-                      Đa Nền Tảng (Mac/Win)
+                      <CheckCircle2 size={12} />
+                      Local GPU
                     </span>
-                    <span className="font-semibold text-slate-400">4 Giọng + Clone</span>
+                    <span className="font-semibold text-slate-400">4 giọng + Clone</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Voice Cloning Studio Section in Settings */}
-            <div className="bg-[#161922] border border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-[#161922] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Mic size={16} className="text-rose-400" />
-                    <span>Studio Nhân Bản Giọng Nói AI (Voice Cloning)</span>
+                    <span>Nhân Bản Giọng Nói (Voice Cloning)</span>
                     <span className="px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-semibold">
-                      k2-fsa OmniVoice
+                      OmniVoice
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Cấu hình và nhân bản giọng đọc của bất kỳ ai từ file ghi âm ngắn (3s - 20s). Giọng sau khi tạo sẽ tự động xuất hiện ở Kho Giọng Đọc.
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Tạo bản sao giọng đọc từ file ghi âm ngắn 3s - 20s
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowCloneForm(!showCloneForm)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs font-bold shadow-md shadow-rose-500/20 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-xs font-bold shadow-md shadow-rose-500/20 transition cursor-pointer shrink-0"
                 >
-                  <Plus size={14} />
-                  <span>{showCloneForm ? 'Thu gọn form' : '+ Tạo Giọng Nhân Bản Mới'}</span>
+                  <Plus size={13} />
+                  <span>{showCloneForm ? 'Thu gọn' : '+ Tạo giọng clone'}</span>
                 </button>
               </div>
 
@@ -1495,12 +1495,12 @@ export default function SettingsPage() {
                       {isCloning ? (
                         <>
                           <RefreshCw size={13} className="animate-spin" />
-                          <span>Đang xử lý và nhân bản giọng AI...</span>
+                          <span>Đang xử lý giọng clone...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles size={14} />
-                          <span>Nhân Bản & Đăng Ký Giọng Mới</span>
+                          <span>Tạo Giọng Clone</span>
                         </>
                       )}
                     </button>
@@ -1508,61 +1508,60 @@ export default function SettingsPage() {
                 </form>
               )}
             </div>
-
-            {/* Voices List Card */}
+                      {/* Voices List Card */}
             <div className="bg-[#161922] border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between flex-wrap gap-4">
+              <div className="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
                 <div>
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                       <Mic size={16} className="text-indigo-400" />
-                      <span>Quản Lý Giọng Đọc</span>
+                      <span>Kho Giọng Đọc</span>
                     </h3>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs">
-                      Đang hiện: {enabledVoiceIds.length} / {voices.length} giọng
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-[11px]">
+                      {enabledVoiceIds.length} / {voices.length} giọng
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Quản lý trạng thái ẩn / hiện các giọng đọc ở trang Lồng Tiếng.
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Bật / tắt các giọng hiển thị trong Studio
                   </p>
                 </div>
 
                 {/* Quick actions & Gender filters */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
+                  <div className="flex items-center gap-1 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
                     <button
                       type="button"
                       onClick={handleEnableAllVoices}
-                      className="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer font-medium"
+                      className="px-2 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer font-medium"
                       title="Hiện tất cả các giọng"
                     >
-                      Hiện tất cả ({voices.length})
+                      Hiện tất cả
                     </button>
                     <button
                       type="button"
                       onClick={handleEnableOmniAndCustomOnly}
-                      className="px-2.5 py-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition cursor-pointer font-medium"
+                      className="px-2 py-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition cursor-pointer font-medium"
                       title="Chỉ hiện các giọng OmniVoice và Giọng Nhân Bản"
                     >
-                      Chỉ OmniVoice & Cloned
+                      Chỉ OmniVoice
                     </button>
                     <button
                       type="button"
                       onClick={handleEnableGeminiOnly}
-                      className="px-2.5 py-1 rounded-lg text-amber-300 hover:text-slate-950 hover:bg-amber-400 transition cursor-pointer font-medium flex items-center gap-1"
-                      title="Chỉ xuất 30 giọng đọc Google Gemini 2.5 Pro Studio ra kho"
+                      className="px-2 py-1 rounded-lg text-amber-300 hover:text-slate-950 hover:bg-amber-400 transition cursor-pointer font-medium flex items-center gap-1"
+                      title="Chỉ xuất các giọng Google Gemini ra kho"
                     >
-                      <Sparkles size={12} />
-                      <span>Chỉ Gemini ({voices.filter(v => v.engine === 'gemini').length})</span>
+                      <Sparkles size={11} />
+                      <span>Chỉ Gemini</span>
                     </button>
                   </div>
 
                   {/* Gender Filters */}
-                  <div className="flex items-center gap-1.5 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
+                  <div className="flex items-center gap-1 bg-[#10131d] p-1 border border-slate-800 rounded-xl text-xs">
                     <button
                       type="button"
                       onClick={() => setSelectedGender('all')}
-                      className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer ${
                         selectedGender === 'all'
                           ? 'bg-slate-700 text-white shadow-sm'
                           : 'text-slate-400 hover:text-white'
@@ -1573,26 +1572,26 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedGender('Female')}
-                      className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
+                      className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
                         selectedGender === 'Female'
                           ? 'bg-rose-600 text-white shadow-sm'
                           : 'text-slate-400 hover:text-rose-300'
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span>Giọng Nữ</span>
+                      <span>Nữ</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setSelectedGender('Male')}
-                      className={`px-3 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
+                      className={`px-2.5 py-1 rounded-lg transition font-medium cursor-pointer flex items-center gap-1.5 ${
                         selectedGender === 'Male'
                           ? 'bg-sky-600 text-white shadow-sm'
                           : 'text-slate-400 hover:text-sky-300'
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                      <span>Giọng Nam</span>
+                      <span>Nam</span>
                     </button>
                   </div>
                 </div>
@@ -1621,7 +1620,7 @@ export default function SettingsPage() {
                   return (
                     <div
                       key={v.id}
-                      className={`px-6 py-4 flex items-center justify-between gap-4 transition ${
+                      className={`px-5 py-3 flex items-center justify-between gap-3 transition ${
                         isSelected
                           ? 'bg-indigo-600/5'
                           : isEnabled
@@ -1629,12 +1628,12 @@ export default function SettingsPage() {
                           : 'opacity-60 bg-[#10121a]/60 hover:opacity-90'
                       }`}
                     >
-                      <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
                         <button
                           type="button"
                           onClick={() => handlePlayVoicePreview(v.id)}
                           disabled={isLoading}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition shadow-md ${
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition shadow-sm shrink-0 cursor-pointer ${
                             isPlaying
                               ? 'bg-amber-500 text-black animate-pulse'
                               : v.is_custom
@@ -1650,88 +1649,68 @@ export default function SettingsPage() {
                           title={isPlaying ? 'Dừng phát' : 'Nghe thử mẫu giọng'}
                         >
                           {isLoading ? (
-                            <RefreshCw size={15} className="animate-spin text-white" />
+                            <RefreshCw size={13} className="animate-spin text-white" />
                           ) : isPlaying ? (
-                            <Square size={15} className="fill-current" />
+                            <Square size={13} className="fill-current" />
                           ) : (
-                            <Play size={15} className="fill-current ml-0.5" />
+                            <Play size={13} className="fill-current ml-0.5" />
                           )}
                         </button>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-slate-200">
-                              {v.name}
+                        <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-slate-200">
+                            {v.name}
+                          </span>
+
+                          {/* Engine Tag */}
+                          {v.is_custom ? (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-rose-500/15 border-rose-500/30 text-rose-300">
+                              Clone
                             </span>
-
-                            {/* Gender Tag with sleek dot */}
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium border flex items-center gap-1.5 ${
-                                v.gender === 'Female'
-                                  ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
-                                  : 'bg-sky-500/10 border-sky-500/25 text-sky-300'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${v.gender === 'Female' ? 'bg-rose-400' : 'bg-sky-400'}`} />
-                              <span>{v.gender === 'Female' ? 'Nữ' : 'Nam'}</span>
+                          ) : v.engine === 'gemini' ? (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-amber-500/15 border-amber-500/30 text-amber-300">
+                              Gemini
                             </span>
-
-                            {/* Engine Tag */}
-                            {v.is_custom ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold border bg-rose-500/15 border-rose-500/30 text-rose-300 flex items-center gap-1">
-                                <Sparkles size={10} />
-                                <span>Giọng Nhân Bản (Clone)</span>
-                              </span>
-                            ) : v.engine === 'gemini' ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold border bg-amber-500/15 border-amber-500/30 text-amber-300 flex items-center gap-1">
-                                <Sparkles size={10} />
-                                <span>Gemini 2.5 Pro TTS</span>
-                              </span>
-                            ) : v.engine === 'omnivoice' ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold border bg-emerald-500/15 border-emerald-500/30 text-emerald-300 flex items-center gap-1">
-                                <Sparkles size={10} />
-                                <span>OmniVoice AI</span>
-                              </span>
-                            ) : v.engine === 'kokoro' ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold border bg-purple-500/10 border-purple-500/30 text-purple-300">
-                                Kokoro Studio
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold border bg-indigo-500/10 border-indigo-500/30 text-indigo-300">
-                                Edge-TTS
-                              </span>
-                            )}
-
-                            {/* Region Tag */}
-                            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-medium">
-                              {v.region}
+                          ) : v.engine === 'omnivoice' ? (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold border bg-emerald-500/15 border-emerald-500/30 text-emerald-300">
+                              OmniVoice
                             </span>
+                          ) : v.engine === 'kokoro' ? (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-purple-500/10 border-purple-500/30 text-purple-300">
+                              Kokoro
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold border bg-indigo-500/10 border-indigo-500/30 text-indigo-300">
+                              Edge-TTS
+                            </span>
+                          )}
 
-                            {/* Visibility Tag */}
-                            {isEnabled ? (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
-                                <Check size={10} className="stroke-[3]" />
-                                <span>Hiện</span>
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-400 border border-slate-700/60 text-[10px] font-medium flex items-center gap-1">
-                                <EyeOff size={10} />
-                                <span>Ẩn</span>
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">
-                            {v.description}
-                          </p>
+                          {/* Region Tag */}
+                          <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 text-[10px] font-medium">
+                            {v.region}
+                          </span>
+
+                          {/* Visibility Tag */}
+                          {isEnabled ? (
+                            <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-0.5">
+                              <Check size={9} className="stroke-[3]" />
+                              <span>Hiện</span>
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded bg-slate-800/80 text-slate-500 border border-slate-700/60 text-[10px] font-medium flex items-center gap-0.5">
+                              <EyeOff size={9} />
+                              <span>Ẩn</span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="shrink-0 flex items-center gap-2.5">
+                      <div className="shrink-0 flex items-center gap-2">
                         {/* Toggle Export Button */}
                         <button
                           type="button"
                           onClick={() => handleToggleVoiceVisibility(v.id)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                             isEnabled
                               ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25'
                               : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
@@ -1740,12 +1719,12 @@ export default function SettingsPage() {
                         >
                           {isEnabled ? (
                             <>
-                              <CheckCircle2 size={13} className="text-emerald-400" />
+                              <CheckCircle2 size={12} className="text-emerald-400" />
                               <span>Đang hiện</span>
                             </>
                           ) : (
                             <>
-                              <EyeOff size={13} />
+                              <EyeOff size={12} />
                               <span>Đang ẩn</span>
                             </>
                           )}
@@ -1755,23 +1734,23 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={() => promptDeleteCustomVoice(v)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 transition cursor-pointer"
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 transition cursor-pointer"
                             title="Xóa giọng nhân bản này"
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={13} />
                           </button>
                         )}
 
                         <button
                           type="button"
                           onClick={() => handleSetDefaultVoice(v.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                             isSelected
-                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
                               : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                           }`}
                         >
-                          {isSelected ? 'Đang chọn' : 'Chọn làm mặc định'}
+                          {isSelected ? 'Mặc định' : 'Đặt mặc định'}
                         </button>
                       </div>
                     </div>
@@ -1784,19 +1763,16 @@ export default function SettingsPage() {
                     {femaleList.length > 0 && (
                       <div>
                         {selectedGender === 'all' && (
-                          <div className="px-6 py-2.5 bg-[#12151f] border-b border-slate-800/80 flex items-center justify-between">
+                          <div className="px-5 py-2 bg-[#12151f] border-b border-slate-800/80 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]" />
                               <span className="text-xs font-bold text-rose-300 uppercase tracking-wider">
-                                Giọng Nữ Tiếng Việt
+                                Giọng Nữ
                               </span>
-                              <span className="px-2 py-0.2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] lowercase font-normal">
-                                {femaleList.length} giọng
+                              <span className="px-1.5 py-0.2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-medium">
+                                {femaleList.length}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-500 hidden sm:inline">
-                              Ngọt ngào, trong trẻo, truyền cảm hứng
-                            </span>
                           </div>
                         )}
                         <div className="divide-y divide-slate-800/60">
@@ -1809,19 +1785,16 @@ export default function SettingsPage() {
                     {maleList.length > 0 && (
                       <div>
                         {selectedGender === 'all' && (
-                          <div className="px-6 py-2.5 bg-[#12151f] border-b border-t border-slate-800/80 flex items-center justify-between">
+                          <div className="px-5 py-2 bg-[#12151f] border-b border-t border-slate-800/80 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.6)]" />
                               <span className="text-xs font-bold text-sky-300 uppercase tracking-wider">
-                                Giọng Nam Tiếng Việt
+                                Giọng Nam
                               </span>
-                              <span className="px-2 py-0.2 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-[10px] lowercase font-normal">
-                                {maleList.length} giọng
+                              <span className="px-1.5 py-0.2 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-[10px] font-medium">
+                                {maleList.length}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-500 hidden sm:inline">
-                              Trầm ấm, dõng dạc, thuyết minh và công nghệ
-                            </span>
                           </div>
                         )}
                         <div className="divide-y divide-slate-800/60">
