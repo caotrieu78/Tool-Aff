@@ -63,8 +63,8 @@ export default function App() {
             {!isCollapsed ? (
               <>
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-500/20">
-                    <Film size={14} className="text-white" />
+                  <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 shadow-md shadow-indigo-500/20 border border-indigo-500/30 bg-slate-900 flex items-center justify-center">
+                    <img src="/icon.png" alt="Video Studio" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-sm font-bold text-slate-100 whitespace-nowrap tracking-tight">Video Studio</span>
                 </div>

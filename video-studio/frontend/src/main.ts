@@ -92,6 +92,7 @@ function killBackend() {
 }
 
 const createWindow = () => {
+  const iconPath = path.join(app.getAppPath(), 'public', 'icon.png');
   const mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -99,6 +100,7 @@ const createWindow = () => {
     minHeight: 700,
     titleBarStyle: 'hiddenInset',  // macOS native look
     backgroundColor: '#0f1117',
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -10,10 +10,14 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: './public/icon',
+    name: 'Video Studio',
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      setupIcon: './public/icon.ico',
+    }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),
     new MakerDeb({}),
