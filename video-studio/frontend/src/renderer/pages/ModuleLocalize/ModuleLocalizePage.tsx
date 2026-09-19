@@ -1201,7 +1201,11 @@ export default function ModuleLocalizePage() {
 
                 <button
                   type="button"
-                  onClick={loadLibraryVideos}
+                  onClick={() => {
+                    loadLibraryVideos();
+                    loadMeta();
+                    loadPresets();
+                  }}
                   className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer border border-slate-700/60"
                   title="Tải lại danh sách video"
                 >
