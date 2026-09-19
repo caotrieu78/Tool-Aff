@@ -234,7 +234,9 @@ async def run_localize_pipeline(job_id: int):
 
                 dur = float(video.duration or 15.0)
                 async with smooth_progress_ticker(job_id, "vision", 35, 72, "AI Thị Giác đang phân tích hành động & sáng tác kịch bản", interval=1.2):
-                    translated_segments = await generate_script_from_video_vision(db, video.file_path, dur, style=style)
+                    translated_segments = await generate_script_from_video_vision(
+                        db, video.file_path, dur, style=style, multi_voice=multi_voice, custom_prompt=custom_prompt
+                    )
 
             else:
                 # TRẠNG THÁI 2 (Mặc định): Video có lời - Không có sub -> Whisper STT nghe giọng nói

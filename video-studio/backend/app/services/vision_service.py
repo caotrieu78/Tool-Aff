@@ -96,6 +96,8 @@ async def generate_script_from_video_vision(
     video_path: str,
     duration: float = 15.0,
     style: str = "casual",
+    multi_voice: bool = False,
+    custom_prompt: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Sử dụng Gemini Multimodal Vision qua Kie.ai để phân tích các khung hình video:
@@ -202,6 +204,23 @@ async def generate_script_from_video_vision(
             "the whole video here."
         )
 
+        multi_voice_guideline = ""
+        json_fields = '    "text": "Short action summary",\n    "text_vi": "Engaging Vietnamese narration line matching the frame"'
+        if multi_voice:
+            multi_voice_guideline = (
+                "5. PHÂN VAI HỘI THOẠI & ĐA GIỌNG ĐỌC (MULTI-VOICE CHARACTER ROLES):\n"
+                "   - Quan sát các nhân vật xuất hiện trong các khung hình (ví dụ: Chú Cóc/Anh Chàng, Nữ Chính/Cô Vịt, Người Dẫn Chuyện...). \n"
+                "   - Khi nhân vật đang nói, cử chỉ hoặc suy nghĩ, hãy viết câu thoại cho nhân vật đó và gán 'speaker': 'male' (nhân vật nam) hoặc 'female' (nhân vật nữ).\n"
+                "   - Khi là lời thuyết minh bình luận chung về cảnh thì gán 'speaker': 'narrator'.\n"
+                "   - Gán trường 'character': 'A' | 'B' | 'narrator' để hệ thống khóa chặt danh tính nhân vật xuyên suốt video.\n"
+            )
+            json_fields = (
+                '    "text": "Short action summary",\n'
+                '    "text_vi": "Engaging Vietnamese narration or dialogue line",\n'
+                '    "character": "A",\n'
+                '    "speaker": "male"|"female"|"narrator"'
+            )
+
         prompt = f"""You are a content-creation expert and voiceover scriptwriter for viral short TikTok/Reels videos.
 This video is a movie clip / dramatic moment / daily-life scene / life-hack clip with NO DIALOGUE AND NO SUBTITLES AT ALL.
 {context_note}
@@ -219,15 +238,14 @@ YOUR TASK:
    - NEVER leave a silent gap longer than 10 seconds.
    - Each line should be a moderate length (about 8 to 16 words), natural, easy to listen to, and not overly sentimental.
 4. Each line's 'start' and 'end' timestamps are ABSOLUTE video time and must stay within [{w_start:.1f}, {w_end:.1f}].
-
+{multi_voice_guideline}
 You MUST return EXACTLY this JSON array-of-objects format (no extra explanation):
 [
   {{
     "id": 1,
     "start": {w_start:.1f},
     "end": {min(w_end, w_start + 3.5):.1f},
-    "text": "Short action summary",
-    "text_vi": "Engaging Vietnamese narration line matching the frame"
+{json_fields}
   }}
 ]
 
@@ -316,12 +334,21 @@ IMPORTANT: the "text_vi" value for every item must be written in natural, fluent
                         prev_end = e
                         t_vi = str(item.get("text_vi") or item.get("text") or "").strip()
                         t_orig = str(item.get("text") or t_vi).strip()
+                        raw_spk = str(item.get("speaker") or "narrator").lower().strip()
+                        if raw_spk not in ["male", "female", "narrator"]:
+                            raw_spk = "narrator"
+                        char_id = str(item.get("character") or "").strip().upper()
+                        if not char_id:
+                            char_id = "NARRATOR" if raw_spk == "narrator" else "A"
+
                         results.append({
                             "start": s,
                             "end": e,
                             "duration": round(e - s, 2),
                             "text": t_orig,
                             "text_vi": t_vi,
+                            "speaker": raw_spk,
+                            "character": char_id,
                         })
 
                     logger.info(
@@ -368,8 +395,23 @@ IMPORTANT: the "text_vi" value for every item must be written in natural, fluent
     for i, seg in enumerate(all_segments):
         seg["id"] = i + 1
 
+    if multi_voice:
+        # Khóa giọng nhân vật nhất quán xuyên suốt các cửa sổ video
+        char_lock: Dict[str, str] = {}
+        for s in all_segments:
+            c_id = str(s.get("character") or "").strip().upper()
+            spk = str(s.get("speaker") or "narrator").lower().strip()
+            if c_id and c_id not in ["NARRATOR", "NONE", ""] and c_id not in char_lock:
+                if spk in ["male", "female"]:
+                    char_lock[c_id] = spk
+
+        for s in all_segments:
+            c_id = str(s.get("character") or "").strip().upper()
+            if c_id in char_lock:
+                s["speaker"] = char_lock[c_id]
+
     logger.info(
         f"[Vision] ✅ Hoàn tất {len(windows)} cửa sổ, tổng {len(all_segments)} câu thuyết minh "
-        f"cho video {total_dur:.1f}s"
+        f"cho video {total_dur:.1f}s (multi_voice={multi_voice})"
     )
     return all_segments
