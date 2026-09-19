@@ -11,6 +11,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   Volume2,
+  User,
+  Users,
   Subtitles,
   EyeOff,
   BookOpen,
@@ -1276,70 +1278,263 @@ export default function LocalizePresetsPage() {
                   </div>
 
                   {/* Tùy chọn Đa Giọng Đọc Theo Nhân Vật */}
-                    <div className="mt-4 p-4 rounded-2xl bg-[#0f1118] border border-slate-800 space-y-3">
-                      <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-white select-none">
-                        <input
-                          type="checkbox"
-                          checked={formSettings.multiVoice ?? false}
-                          onChange={(e) =>
-                            setFormSettings({ ...formSettings, multiVoice: e.target.checked })
-                          }
-                          className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                  <div
+                    className={`mt-5 rounded-3xl border transition-all duration-300 p-5 ${
+                      formSettings.multiVoice
+                        ? 'bg-[#121422] border-indigo-500/40 shadow-xl shadow-indigo-950/30 ring-1 ring-indigo-500/20'
+                        : 'bg-[#0f1118] border-slate-800/80 hover:border-slate-700/80'
+                    }`}
+                  >
+                    {/* Switch Row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
+                            formSettings.multiVoice
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/40'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <Users size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white tracking-wide">
+                              Chế Độ Đa Giọng Đọc Phân Vai (Hội Thoại Nam / Nữ / Dẫn Chuyện)
+                            </span>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm">
+                              Studio Pro
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                            AI tự động bám sát mạch đối thoại của từng nhân vật và gán đúng giọng riêng biệt. Cùng một nhân vật sẽ luôn giữ vững 1 giọng đọc từ đầu tới cuối phim.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Modern Toggle Switch */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={formSettings.multiVoice ?? false}
+                        onClick={() =>
+                          setFormSettings({ ...formSettings, multiVoice: !formSettings.multiVoice })
+                        }
+                        className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          formSettings.multiVoice ? 'bg-indigo-600 shadow-md shadow-indigo-600/40' : 'bg-slate-800'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                            formSettings.multiVoice ? 'translate-x-5' : 'translate-x-0'
+                          }`}
                         />
-                        <div className="flex flex-col">
-                          <span className="flex items-center gap-1.5">
-                            <span>👥 Kích hoạt Chế Độ Đa Giọng Đọc (Hội thoại Nam / Nữ / Dẫn chuyện)</span>
-                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">Mới</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            AI tự động nhận diện giới tính nhân vật và gán giọng đọc tương ứng (Nam Minh cho nhân vật Nam, Hoài My cho nhân vật Nữ).
-                          </span>
-                        </div>
-                      </label>
-
-                      {formSettings.multiVoice && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-sky-400">Giọng Nhân Vật Nam:</label>
-                            <select
-                              value={formSettings.voiceMale || 'vi-VN-NamMinhNeural'}
-                              onChange={(e) => setFormSettings({ ...formSettings, voiceMale: e.target.value })}
-                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
-                            >
-                              {voices.map(v => (
-                                <option key={v.id} value={v.id}>{v.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-pink-400">Giọng Nhân Vật Nữ:</label>
-                            <select
-                              value={formSettings.voiceFemale || 'vi-VN-HoaiMyNeural'}
-                              onChange={(e) => setFormSettings({ ...formSettings, voiceFemale: e.target.value })}
-                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
-                            >
-                              {voices.map(v => (
-                                <option key={v.id} value={v.id}>{v.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold text-amber-400">Giọng Người Dẫn Chuyện:</label>
-                            <select
-                              value={formSettings.voiceNarrator || formSettings.voiceId}
-                              onChange={(e) => setFormSettings({ ...formSettings, voiceNarrator: e.target.value })}
-                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
-                            >
-                              {voices.map(v => (
-                                <option key={v.id} value={v.id}>{v.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      )}
+                      </button>
                     </div>
+
+                    {/* When Multi-Voice is Activated */}
+                    {formSettings.multiVoice && (
+                      <div className="pt-4 space-y-4">
+                        {/* 3 Character Cards */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+                          {/* Card 1: Male Character */}
+                          <div className="p-4 rounded-2xl bg-[#0b0e17] border border-sky-500/30 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-sky-500/50 transition">
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                                    <User size={13} />
+                                  </div>
+                                  <span className="text-xs font-bold text-sky-300 uppercase tracking-wider">
+                                    Nhân Vật Nam
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-sky-400/80 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                                  Vai Nam
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={formSettings.voiceMale || 'vi-VN-NamMinhNeural'}
+                                  onChange={(e) => setFormSettings({ ...formSettings, voiceMale: e.target.value })}
+                                  className="flex-1 bg-[#141824] border border-sky-500/30 focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition cursor-pointer"
+                                >
+                                  {voices.map((v) => (
+                                    <option key={v.id} value={v.id} className="bg-[#121520] text-white">
+                                      {v.name} ({v.gender === 'Female' ? 'Nữ' : 'Nam'})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVoicePreview(formSettings.voiceMale || 'vi-VN-NamMinhNeural')}
+                                  className="w-8 h-8 rounded-xl bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 border border-sky-500/30 flex items-center justify-center transition shrink-0 cursor-pointer"
+                                  title="Nghe thử giọng Nam"
+                                >
+                                  {loadingVoiceId === (formSettings.voiceMale || 'vi-VN-NamMinhNeural') ? (
+                                    <RefreshCw size={12} className="animate-spin text-sky-300" />
+                                  ) : playingVoiceId === (formSettings.voiceMale || 'vi-VN-NamMinhNeural') ? (
+                                    <Square size={10} className="fill-amber-400 text-amber-400" />
+                                  ) : (
+                                    <Play size={12} className="fill-current ml-0.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Card 2: Female Character */}
+                          <div className="p-4 rounded-2xl bg-[#0b0e17] border border-pink-500/30 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-pink-500/50 transition">
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center">
+                                    <User size={13} />
+                                  </div>
+                                  <span className="text-xs font-bold text-pink-300 uppercase tracking-wider">
+                                    Nhân Vật Nữ
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-pink-400/80 bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">
+                                  Vai Nữ
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={formSettings.voiceFemale || 'vi-VN-HoaiMyNeural'}
+                                  onChange={(e) => setFormSettings({ ...formSettings, voiceFemale: e.target.value })}
+                                  className="flex-1 bg-[#141824] border border-pink-500/30 focus:border-pink-400 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition cursor-pointer"
+                                >
+                                  {voices.map((v) => (
+                                    <option key={v.id} value={v.id} className="bg-[#121520] text-white">
+                                      {v.name} ({v.gender === 'Female' ? 'Nữ' : 'Nam'})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVoicePreview(formSettings.voiceFemale || 'vi-VN-HoaiMyNeural')}
+                                  className="w-8 h-8 rounded-xl bg-pink-500/20 hover:bg-pink-500/35 text-pink-300 border border-pink-500/30 flex items-center justify-center transition shrink-0 cursor-pointer"
+                                  title="Nghe thử giọng Nữ"
+                                >
+                                  {loadingVoiceId === (formSettings.voiceFemale || 'vi-VN-HoaiMyNeural') ? (
+                                    <RefreshCw size={12} className="animate-spin text-pink-300" />
+                                  ) : playingVoiceId === (formSettings.voiceFemale || 'vi-VN-HoaiMyNeural') ? (
+                                    <Square size={10} className="fill-amber-400 text-amber-400" />
+                                  ) : (
+                                    <Play size={12} className="fill-current ml-0.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Card 3: Narrator */}
+                          <div className="p-4 rounded-2xl bg-[#0b0e17] border border-amber-500/30 flex flex-col justify-between shadow-sm relative overflow-hidden group hover:border-amber-500/50 transition">
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                                    <Mic size={13} />
+                                  </div>
+                                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                                    Người Dẫn Chuyện
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-amber-400/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                  Thuyết Minh
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={formSettings.voiceNarrator || formSettings.voiceId}
+                                  onChange={(e) => setFormSettings({ ...formSettings, voiceNarrator: e.target.value })}
+                                  className="flex-1 bg-[#141824] border border-amber-500/30 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition cursor-pointer"
+                                >
+                                  {voices.map((v) => (
+                                    <option key={v.id} value={v.id} className="bg-[#121520] text-white">
+                                      {v.name} ({v.gender === 'Female' ? 'Nữ' : 'Nam'})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVoicePreview(formSettings.voiceNarrator || formSettings.voiceId)}
+                                  className="w-8 h-8 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/30 flex items-center justify-center transition shrink-0 cursor-pointer"
+                                  title="Nghe thử giọng Dẫn chuyện"
+                                >
+                                  {loadingVoiceId === (formSettings.voiceNarrator || formSettings.voiceId) ? (
+                                    <RefreshCw size={12} className="animate-spin text-amber-300" />
+                                  ) : playingVoiceId === (formSettings.voiceNarrator || formSettings.voiceId) ? (
+                                    <Square size={10} className="fill-amber-400 text-amber-400" />
+                                  ) : (
+                                    <Play size={12} className="fill-current ml-0.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Pair Presets */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-400">
+                          <span className="font-semibold text-slate-300">Gợi ý phối giọng nhanh:</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormSettings({
+                                ...formSettings,
+                                voiceMale: 'vi-VN-NamMinhNeural',
+                                voiceFemale: 'vi-VN-HoaiMyNeural',
+                                voiceNarrator: 'vi-VN-NamMinhNeural',
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer"
+                          >
+                            ⭐ Nam Minh & Hoài My (Phổ Biến)
+                          </button>
+                          {voices.some((v) => v.engine === 'vieneu') && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormSettings({
+                                  ...formSettings,
+                                  voiceMale: 'vieneu_ba_thang',
+                                  voiceFemale: 'vi-VN-HoaiMyNeural',
+                                  voiceNarrator: 'vieneu_thien_tam_duc',
+                                })
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/30 transition cursor-pointer"
+                            >
+                              🎙️ VieNeu Studio (Bá Thắng & Hoài My)
+                            </button>
+                          )}
+                          {voices.some((v) => v.engine === 'gemini') && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormSettings({
+                                  ...formSettings,
+                                  voiceMale: 'gemini_achird',
+                                  voiceFemale: 'gemini_aoede',
+                                  voiceNarrator: 'gemini_alnilam',
+                                })
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/30 transition cursor-pointer"
+                            >
+                              ✨ Gemini 2.5 Pro Đa Giọng
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   </div>
                 )}
 

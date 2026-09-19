@@ -1004,8 +1004,15 @@ async def translate_chinese_segments(
         "2. TUYỆT ĐỐI XÓA BỎ DỊCH THÔ HÁN VIỆT & VĂN PHONG DỊCH MÁY:\n"
         "   - NGHIÊM CẤM dịch âm Hán Việt thô, tối nghĩa, ngô nghê hoặc câu từ sáo rỗng mà người Việt hiện đại không ai dùng trong giao tiếp đời thường.\n"
         "   - Chuyển ngữ sang KHẨU NGỮ TIẾNG VIỆT ĐỜI THƯỜNG: tự nhiên, sinh động, biểu cảm, giàu cảm xúc, dí dỏm, sử dụng linh hoạt các từ cảm thán và quán ngữ Việt Nam.\n\n"
-        "3. PHÂN LOẠI NHÂN VẬT ĐỐI THOẠI (SPEAKER TAGGING):\n"
-        "   - Dựa vào ngữ cảnh câu nói, hãy xác định nhân vật nói là ai: 'male' (nam giới), 'female' (nữ giới), hoặc 'narrator' (người dẫn chuyện/bình luận).\n\n"
+        "3. BẢO ĐẢM TÍNH NHẤT QUÁN CỦA NHÂN VẬT & PHÂN VAI HỘI THOẠI (STRICT CHARACTER DIALOGUE CONSISTENCY - CỰC KỲ QUAN TRỌNG):\n"
+        "   - ĐỌC TOÀN BỘ KỊCH BẢN ĐỂ THEO DÕI HỘI THOẠI (DIALOGUE CONTEXT & TURN-TAKING):\n"
+        "     * Hãy xác định rõ ràng ai đang nói với ai (Ví dụ: Nhân vật A - Nam chính/Chú Cóc, Nhân vật B - Nữ chính/Công Chúa/Bác Gấu/Kẻ thù, hoặc 'narrator' là người dẫn chuyện).\n"
+        "     * Khi hai nhân vật đối thoại qua lại, lời thoại sẽ luân phiên (A nói -> B đáp -> A nói tiếp -> B trả lời).\n"
+        "   - NGUYÊN TẮC BẤT DI BẤT DỊCH - CÙNG 1 NHÂN VẬT TUYỆT ĐỐI KHÔNG ĐƯỢC ĐỔI GIỌNG GIỮA CHỪNG:\n"
+        "     * Nhân vật A một khi đã được xác định là 'male' (nam) thì MỌI CÂU NÓI CỦA NHÂN VẬT A XUYÊN SUỐT CẢ VIDEO PHẢI LUÔN LÀ 'male'. Tuyệt đối cấm nhân vật A đang nói giọng nam, đến đoạn sau lại bị nhảy sang giọng nữ 'female' chỉ vì câu đó chứa từ cảm thán, la hét hay than thở!\n"
+        "     * Tương tự, nếu nhân vật B là 'female' (nữ) thì MỌI CÂU CỦA NHÂN VẬT B BẮT BUỘC PHẢI LUÔN LÀ 'female' từ đầu tới cuối phim.\n"
+        "   - 'narrator': Chỉ dùng cho lời thuyết minh, bình luận ngoài khung hình (không phải nhân vật trong phim đang mở miệng nói).\n"
+        "   - BẮT BUỘC xuất thêm trường 'character': 'A' | 'B' | 'narrator' để hệ thống tự động khóa chặt giọng đọc cho từng nhân vật.\n\n"
         "4. ĐỒNG BỘ KHỚP NHÉP MIỆNG & THỜI LƯỢNG NÓI (LIP-SYNC CADENCE):\n"
         "   - Mỗi câu thoại có `duration_sec` và yêu cầu `target_syllables`. Tốc độ đọc tiếng Việt chuẩn là ~3.2 - 3.8 âm tiết / giây.\n"
         "   - BẮT BUỘC: Câu tiếng Việt `vi` PHẢI ĐẠT ĐỘ DÀI ÂM TIẾT nằm đúng trong khoảng `target_syllables` yêu cầu.\n"
@@ -1014,10 +1021,10 @@ async def translate_chinese_segments(
         "5. TUYỆT ĐỐI 100% TIẾNG VIỆT THUẦN TÚY:\n"
         "   - Không để sót bất kỳ chữ Hán nào trong bản dịch 'vi'.\n\n"
         "6. ĐỊNH DẠNG ĐẦU RA:\n"
-        "   Chỉ xuất kết quả dưới dạng mảng JSON thuần túy: [{\"id\": 0, \"vi\": \"...\", \"speaker\": \"male\"|\"female\"|\"narrator\"}], tuyệt đối không bọc markdown ```json và không kèm giải thích."
+        "   Chỉ xuất kết quả dưới dạng mảng JSON thuần túy: [{\"id\": 0, \"character\": \"A\", \"vi\": \"...\", \"speaker\": \"male\"|\"female\"|\"narrator\"}], tuyệt đối không bọc markdown ```json và không kèm giải thích."
     )
 
-    BATCH_SIZE = 40
+    BATCH_SIZE = 80
     batches = [segments[i : i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     semaphore = asyncio.Semaphore(3)
 
@@ -1036,8 +1043,8 @@ async def translate_chinese_segments(
             })
 
         prompt = (
-            "Translate the following list of lines into Vietnamese with speaker detection. Return as JSON array:\n"
-            '[{"id": 0, "vi": "Vietnamese translation", "speaker": "male|female|narrator"}, ...]\n\n'
+            "Translate the following dialogue lines into Vietnamese with strict character tracking and speaker consistency. Return as JSON array:\n"
+            '[{"id": 0, "character": "A", "vi": "Vietnamese translation", "speaker": "male|female|narrator"}, ...]\n\n'
             "Source data:\n"
             + json.dumps(batch_items, ensure_ascii=False, indent=2)
         )
@@ -1058,7 +1065,19 @@ async def translate_chinese_segments(
     for m in batch_results:
         trans_map.update(m)
 
-    # Merge back to segments
+    # Phase 1: Xây dựng bản đồ khóa giọng đọc cho từng nhân vật (Character Voice Locking)
+    char_speaker_lock: Dict[str, str] = {}
+    for i, s in enumerate(segments):
+        seg_id = s.get("id", i)
+        val = trans_map.get(seg_id) or trans_map.get(str(seg_id)) or trans_map.get(i)
+        if isinstance(val, dict):
+            c_id = str(val.get("character") or "").strip().upper()
+            spk = str(val.get("speaker") or "").strip().lower()
+            if c_id and c_id not in ["NARRATOR", "NONE", "DAN_CHUYEN", "THUYET_MINH", ""]:
+                if c_id not in char_speaker_lock and spk in ["male", "female", "narrator"]:
+                    char_speaker_lock[c_id] = spk
+
+    # Phase 2: Ráp nối bản dịch và ép buộc cố định giọng theo nhân vật đã khóa
     result = []
     for i, s in enumerate(segments):
         seg_id = s.get("id", i)
@@ -1071,7 +1090,14 @@ async def translate_chinese_segments(
         )
         if isinstance(val, dict):
             vi_text = val.get("vi", "")
-            speaker = val.get("speaker", "narrator")
+            raw_spk = str(val.get("speaker") or "narrator").strip().lower()
+            c_id = str(val.get("character") or "").strip().upper()
+            if c_id in char_speaker_lock:
+                speaker = char_speaker_lock[c_id]
+            elif raw_spk in ["male", "female", "narrator"]:
+                speaker = raw_spk
+            else:
+                speaker = "narrator"
         else:
             vi_text = str(val or "")
             speaker = "narrator"
@@ -1096,6 +1122,22 @@ async def translate_chinese_segments(
             "text_vi": vi_text,
             "speaker": speaker if speaker in ["male", "female", "narrator"] else "narrator",
         })
+
+    # Phase 3: Dialogue Blip Smoothing (Làm mịn hội thoại)
+    # Khắc phục lỗi: Nhân vật A đang nói, có 1 tiếng cảm thán ngắn < 1.3s bị AI gán nhầm sang giọng B,
+    # sau đó ngay lập tức vẫn là nhân vật A tiếp tục nói.
+    for i in range(1, len(result) - 1):
+        prev_spk = result[i - 1].get("speaker")
+        curr_spk = result[i].get("speaker")
+        next_spk = result[i + 1].get("speaker")
+        try:
+            curr_dur = float(result[i].get("end", 0.0)) - float(result[i].get("start", 0.0))
+            gap_before = float(result[i].get("start", 0.0)) - float(result[i - 1].get("end", 0.0))
+            if prev_spk == next_spk and curr_spk != prev_spk and curr_dur < 1.3 and gap_before < 1.0:
+                logger.info(f"[Translate] Tự động sửa lỗi nhảy giọng tại câu #{i}: đổi từ '{curr_spk}' sang '{prev_spk}' để giữ vững nhất quán nhân vật.")
+                result[i]["speaker"] = prev_spk
+        except Exception:
+            pass
 
     return result
 
@@ -1158,9 +1200,11 @@ def _parse_translation_reply(raw_reply: str) -> Dict[Any, Dict[str, Any]]:
                         spk = str(item.get("speaker") or "narrator").lower().strip()
                         if spk not in ["male", "female", "narrator"]:
                             spk = "narrator"
+                        char_id = str(item.get("character") or item.get("char") or "").strip()
                         trans_map[item["id"]] = {
                             "vi": _clean_vi_text(item.get("vi", "")),
                             "speaker": spk,
+                            "character": char_id,
                         }
                 if trans_map:
                     return trans_map
@@ -1176,7 +1220,8 @@ def _parse_translation_reply(raw_reply: str) -> Dict[Any, Dict[str, Any]]:
                 spk = str(item.get("speaker") or "narrator").lower().strip()
                 if spk not in ["male", "female", "narrator"]:
                     spk = "narrator"
-                return {item["id"]: {"vi": _clean_vi_text(item.get("vi", "")), "speaker": spk}}
+                char_id = str(item.get("character") or item.get("char") or "").strip()
+                return {item["id"]: {"vi": _clean_vi_text(item.get("vi", "")), "speaker": spk, "character": char_id}}
         except (json.JSONDecodeError, TypeError):
             pass
 
