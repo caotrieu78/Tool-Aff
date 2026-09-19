@@ -1430,16 +1430,16 @@ export default function LocalizeEditorPage() {
                         onChange={(e) => handleSegmentSpeakerChange(idx, e.target.value)}
                         className={`text-[10.5px] font-semibold rounded-lg px-2 py-0.5 border cursor-pointer focus:outline-none transition ${
                           seg.speaker === 'male'
-                            ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                            ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
                             : seg.speaker === 'female'
-                            ? 'bg-pink-500/15 text-pink-300 border-pink-500/30'
-                            : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                         }`}
                         title="Phân loại vai / nhân vật đọc câu thoại này"
                       >
                         <option value="narrator" className="bg-[#121520] text-slate-200">🎙️ Dẫn chuyện</option>
-                        <option value="male" className="bg-[#121520] text-slate-200">🧑 Giọng Nam</option>
-                        <option value="female" className="bg-[#121520] text-slate-200">👩 Giọng Nữ</option>
+                        <option value="male" className="bg-[#121520] text-slate-200">👤 Nhân vật 1</option>
+                        <option value="female" className="bg-[#121520] text-slate-200">👥 Nhân vật 2</option>
                       </select>
 
                       <span className="text-[10px] font-mono text-slate-500">
