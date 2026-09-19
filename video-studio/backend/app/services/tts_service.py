@@ -628,6 +628,7 @@ async def synthesize_timeline_voiceover(
                     next_start_ms = max(orig_start_ms + 300, int(float(next_seg.get("start", 0.0)) * 1000))
                     available_slot_ms = max(orig_dur_ms, next_start_ms - orig_start_ms - 60)
                 else:
+                    next_start_ms = orig_start_ms + orig_dur_ms + 1000
                     if calc_total_ms > orig_start_ms:
                         available_slot_ms = max(orig_dur_ms, calc_total_ms - orig_start_ms - 150)
                     else:

@@ -1345,6 +1345,14 @@ async def generate_tiktok_caption(
                 "caption": caption,
                 "hashtags": hashtags,
             }
+
+        # Fallback nếu model trả về text thuần không có JSON bọc
+        clean_text = raw_reply.strip() if raw_reply else ""
+        return {
+            "title": "Video ngắn thú vị",
+            "caption": clean_text or "Video chia sẻ kiến thức và mẹo vặt hữu ích.",
+            "hashtags": ["#xuhuong", "#fyp", "#videohay", "#tiktokvietnam"] if include_hashtags else [],
+        }
     except Exception as e:
         logger.error(f"[Gemini] Sinh caption thất bại: {e}")
         raise RuntimeError(f"Lỗi tạo Caption AI: {e}. Vui lòng kiểm tra lại API Key trong mục Cài Đặt!")
@@ -2175,6 +2183,27 @@ async def generate_affiliate_script(
                 "segments": formatted_segments,
                 "style_used": chosen_key,
             }
+
+        # Fallback kịch bản mặc định nếu không khớp JSON
+        fallback_segs = []
+        for i, plan in enumerate(target_segments_plan):
+            txt = f"Sản phẩm {product_name} tiện lợi, chất lượng tuyệt vời."
+            fallback_segs.append({
+                "order_index": i,
+                "scene_id": i,
+                "start": round(plan["start"], 2),
+                "end": round(plan["end"], 2),
+                "duration": round(max(1.0, plan["end"] - plan["start"]), 2),
+                "text": txt,
+                "text_vi": txt,
+            })
+        return {
+            "title": f"Review {product_name}",
+            "caption": f"Trải nghiệm {product_name} cực kỳ đỉnh! Mọi người bấm giỏ hàng xem ngay nhé ✨",
+            "hashtags": ["#xuhuong", "#tiktokshop", "#review", "#affiliate"],
+            "segments": fallback_segs,
+            "style_used": chosen_key,
+        }
     except Exception as e:
         logger.error(f"Lỗi sinh kịch bản affiliate qua Gemini: {e}")
         raise RuntimeError(

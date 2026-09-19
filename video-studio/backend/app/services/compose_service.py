@@ -395,6 +395,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     else:
         # CÁC CHẾ ĐỘ VIỀN / BÓNG / CHỮ ĐƠN THUẦN (OUTLINE / SHADOW / BASIC)
+        outline_color = "&H00000000"
+        back_color = "&H80000000"
         if sub_style_type == "outline":
             border_style = 1
             outline = max(3, min(10, int(round(ass_font_size * 0.08 * scale))))

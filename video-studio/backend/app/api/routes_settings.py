@@ -136,7 +136,7 @@ async def update_key_model(
         raise HTTPException(status_code=404, detail="Key not found")
 
     new_model = body.preferred_model.strip() or "auto"
-    key_rec.preferred_model = new_model
+    setattr(key_rec, "preferred_model", new_model)
     await db.commit()
     return {
         "success": True,

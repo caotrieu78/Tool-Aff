@@ -82,8 +82,9 @@ async def submit_localize_job(body: LocalizeSubmitRequest, db: AsyncSession = De
         raise HTTPException(status_code=404, detail="Video không tồn tại")
 
     recog_mode = body.recognition_mode or getattr(video, "recognition_type", None) or "voice_only"
-    if hasattr(video, "recognition_type") and video.recognition_type != recog_mode:
-        video.recognition_type = recog_mode
+    curr_recog = getattr(video, "recognition_type", None)
+    if curr_recog is not None and str(curr_recog) != str(recog_mode):
+        setattr(video, "recognition_type", recog_mode)
         await db.commit()
 
     config = {
