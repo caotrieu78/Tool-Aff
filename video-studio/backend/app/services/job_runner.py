@@ -249,7 +249,7 @@ async def run_localize_pipeline(job_id: int):
                 })
 
                 async with smooth_progress_ticker(job_id, "stt", 35, 52, "Đang nhận diện giọng nói (Whisper STT)", interval=1.2):
-                    segments = await asyncio.to_thread(transcribe_chinese_audio, wav_path, "base")
+                    segments = await asyncio.to_thread(transcribe_chinese_audio, wav_path, "large-v3-turbo")
 
                 job.current_step = JobStep.translate
                 job.progress_percent = 55.0

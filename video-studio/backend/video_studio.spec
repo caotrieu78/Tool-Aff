@@ -72,12 +72,28 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'test', 'unittest'],
+    excludes=['tkinter', 'matplotlib', 'test', 'unittest', 'torchvision'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Filter duplicate libraries on macOS / PyInstaller
+filtered_binaries = []
+seen_targets = set()
+for dest, src, type_ in a.binaries:
+    # 1. Tránh duplicate destination filenames
+    if dest in seen_targets:
+        continue
+    # 2. Loại bỏ các file libtorch*.dylib bị gom nhầm ra thư mục gốc _internal (gây lỗi duplicate C++ type / GradBucket)
+    # Vì torch đã có toàn bộ dylib cần thiết nằm bên trong thư mục torch/lib/
+    if dest in ['libtorch.dylib', 'libtorch_cpu.dylib', 'libtorch_python.dylib', 'libc10.dylib', 'libshm.dylib']:
+        continue
+    seen_targets.add(dest)
+    filtered_binaries.append((dest, src, type_))
+
+a.binaries = filtered_binaries
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 

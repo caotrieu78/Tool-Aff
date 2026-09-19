@@ -244,6 +244,7 @@ export const settingsApi = {
         id: number;
         label: string;
         provider?: 'google' | 'kie' | string;
+        preferred_model?: string;
         is_default?: boolean;
         masked_key: string;
         daily_quota_used: number;
@@ -254,11 +255,19 @@ export const settingsApi = {
         created_at?: string;
       }[];
     }>('/settings/gemini-keys'),
-  addGeminiKey: (body: { api_key: string; label: string; provider?: string }) =>
+  addGeminiKey: (body: { api_key: string; label: string; provider?: string; preferred_model?: string }) =>
     request<{ success: boolean; key: any; latency_ms: number }>('/settings/gemini-keys', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateKeyModel: (id: number, preferred_model: string) =>
+    request<{ success: boolean; key_id: number; preferred_model: string; message: string }>(
+      `/settings/gemini-keys/${id}/model`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ preferred_model }),
+      }
+    ),
   setDefaultGeminiKey: (id: number) =>
     request<{ success: boolean; message: string; key_id: number }>(`/settings/gemini-keys/${id}/default`, {
       method: 'POST',
@@ -275,7 +284,7 @@ export const settingsApi = {
       active_count: number;
       results: { id: number; label: string; valid: boolean; status: string; message: string; latency_ms: number }[];
     }>('/settings/gemini-keys/test-all', { method: 'POST' }),
-  testRawGeminiKey: (body: { api_key: string; provider?: string }) =>
+  testRawGeminiKey: (body: { api_key: string; provider?: string; model_name?: string }) =>
     request<{ valid: boolean; provider?: string; latency_ms: number; message: string; reply?: string }>(
       '/settings/gemini-keys/test-raw',
       { method: 'POST', body: JSON.stringify(body) }

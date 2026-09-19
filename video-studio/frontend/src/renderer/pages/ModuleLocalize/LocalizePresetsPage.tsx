@@ -256,6 +256,7 @@ export default function LocalizePresetsPage() {
     setFormSettings({
       ...DEFAULT_LOCALIZE_SETTINGS,
       ...s,
+      recognitionMode: s.recognition_mode || s.recognitionMode || DEFAULT_LOCALIZE_SETTINGS.recognitionMode || 'voice_only',
       aiStyle: s.ai_style || s.aiStyle || DEFAULT_LOCALIZE_SETTINGS.aiStyle,
       customAiStyles: s.custom_ai_styles || s.customAiStyles || [],
       customAiPrompt: s.custom_ai_prompt || s.customAiPrompt || '',
@@ -312,6 +313,7 @@ export default function LocalizePresetsPage() {
 
       const settingsToSave = {
         ...formSettings,
+        recognition_mode: formSettings.recognitionMode || 'voice_only',
         ai_style: formSettings.aiStyle,
         custom_ai_styles: customStyles,
         custom_ai_prompt: activePrompt,
@@ -748,7 +750,7 @@ export default function LocalizePresetsPage() {
                 {/* 6 Tabs Configuration Bar (Exact as original screenshot) */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-2 border-t border-slate-800/80 text-xs">
                   {[
-                    { id: 'prompt', label: '1. Kịch Bản AI', icon: Sparkles },
+                    { id: 'prompt', label: '1. Nhận Diện & Kịch Bản AI', icon: Sparkles },
                     { id: 'voice', label: '2. Giọng Đọc & TTS', icon: Volume2 },
                     { id: 'audio', label: '3. Âm Thanh & BGM', icon: SlidersHorizontal },
                     { id: 'ocr', label: '4. Làm Mờ OCR', icon: EyeOff },
@@ -793,21 +795,135 @@ export default function LocalizePresetsPage() {
               {/* All Configuration Sections Displayed Continuously (Toàn bộ hiện ra trực quan) */}
               <div className="flex-1 overflow-y-auto p-6 space-y-7 scroll-smooth">
                 {/* ─────────────────────────────────────────────────────────────
-                    SECTION 1: PHONG CÁCH KỊCH BẢN DỊCH (GEMINI AI)
+                    SECTION 1: NHẬN DIỆN & PHONG CÁCH KỊCH BẢN (GEMINI AI / STT)
                 ───────────────────────────────────────────────────────────── */}
                 {(activeTab === 'all' || activeTab === 'prompt') && (
                   <div
                     id="section-prompt"
-                    className="bg-[#141620] border border-slate-800/90 rounded-3xl p-6 shadow-sm space-y-4"
+                    className="bg-[#141620] border border-slate-800/90 rounded-3xl p-6 shadow-sm space-y-5"
                   >
+                    {/* ── BƯỚC 1.1: PHƯƠNG THỨC NHẬN DIỆN NGUỒN VIDEO ── */}
+                    <div className="space-y-3 pb-5 border-b border-slate-800/80">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <label className="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
+                            <Mic size={16} className="text-sky-400" />
+                            <span>Phương Thức Nhận Diện Video Gốc (Nguồn Kịch Bản)</span>
+                          </label>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            Chọn công nghệ bóc tách nội dung từ video nguồn trước khi dịch và lồng tiếng:
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                        {/* 1. Whisper STT */}
+                        <div
+                          onClick={() => setFormSettings({ ...formSettings, recognitionMode: 'voice_only' })}
+                          className={`p-4 rounded-2xl border cursor-pointer transition select-none flex flex-col justify-between ${
+                            (formSettings.recognitionMode || 'voice_only') === 'voice_only'
+                              ? 'bg-sky-500/15 border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/50'
+                              : 'bg-[#0f1118] border-slate-800 hover:border-slate-700 hover:bg-[#161824]'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                                  <Mic size={16} />
+                                </div>
+                                <span className="text-xs font-bold text-white">Whisper AI (STT)</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                                ★ Chuẩn 100% GenSub
+                              </span>
+                            </div>
+                            <div className="text-xs font-semibold text-sky-300 mb-1">Nhận diện giọng nói gốc</div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              Nghe giọng nói nhân vật trong video, bóc tách chính xác từng câu thoại theo giây, bám sát lời gốc và không chế lời.
+                            </p>
+                          </div>
+                          <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500">Video có người nói</span>
+                            <span className="font-mono text-sky-400 font-semibold">voice_only</span>
+                          </div>
+                        </div>
+
+                        {/* 2. Quét OCR */}
+                        <div
+                          onClick={() => setFormSettings({ ...formSettings, recognitionMode: 'ocr_only' })}
+                          className={`p-4 rounded-2xl border cursor-pointer transition select-none flex flex-col justify-between ${
+                            formSettings.recognitionMode === 'ocr_only'
+                              ? 'bg-purple-500/15 border-purple-400 shadow-md shadow-purple-500/10 ring-1 ring-purple-400/50'
+                              : 'bg-[#0f1118] border-slate-800 hover:border-slate-700 hover:bg-[#161824]'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                                  <Subtitles size={16} />
+                                </div>
+                                <span className="text-xs font-bold text-white">EasyOCR AI</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                Video có phụ đề
+                              </span>
+                            </div>
+                            <div className="text-xs font-semibold text-purple-300 mb-1">Quét chữ phụ đề cứng</div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              Quét chữ Trung Quốc in cứng trên màn hình, dịch sang tiếng Việt và tự động làm mờ phụ đề cũ.
+                            </p>
+                          </div>
+                          <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500">Video có sub Trung</span>
+                            <span className="font-mono text-purple-400 font-semibold">ocr_only</span>
+                          </div>
+                        </div>
+
+                        {/* 3. AI Vision */}
+                        <div
+                          onClick={() => setFormSettings({ ...formSettings, recognitionMode: 'ai_vision' })}
+                          className={`p-4 rounded-2xl border cursor-pointer transition select-none flex flex-col justify-between ${
+                            formSettings.recognitionMode === 'ai_vision'
+                              ? 'bg-amber-500/15 border-amber-400 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/50'
+                              : 'bg-[#0f1118] border-slate-800 hover:border-slate-700 hover:bg-[#161824]'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                                  <Sparkles size={16} />
+                                </div>
+                                <span className="text-xs font-bold text-white">Gemini Vision</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                Chỉ dùng cho video câm
+                              </span>
+                            </div>
+                            <div className="text-xs font-semibold text-amber-300 mb-1">AI Thị Giác sáng tác</div>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                              AI tự xem video, phân tích hành động để sáng tác kịch bản mới. Chỉ chọn khi video không có tiếng nói và không có sub.
+                            </p>
+                          </div>
+                          <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500">Video không lời & sub</span>
+                            <span className="font-mono text-amber-400 font-semibold">ai_vision</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── BƯỚC 1.2: PHONG CÁCH KỊCH BẢN DỊCH (GEMINI AI) ── */}
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 flex-wrap gap-2">
                       <label className="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
                         <Sparkles size={16} className="text-amber-400" />
-                        <span>1. Phong Cách Kịch Bản Dịch (Gemini AI)</span>
+                        <span>Phong Cách Dịch & Biên Soạn Kịch Bản</span>
                       </label>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-400 hidden sm:inline">
-                          AI tự động biên soạn lại kịch bản cuốn hút theo phong cách đã chọn
+                          AI dịch và biểu đạt kịch bản theo phong cách đã chọn
                         </span>
                         <button
                           type="button"

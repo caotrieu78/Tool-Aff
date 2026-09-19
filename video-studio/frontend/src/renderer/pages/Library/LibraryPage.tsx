@@ -90,7 +90,6 @@ export default function LibraryPage() {
   const [search, setSearch] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedRecognitionType, setSelectedRecognitionType] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('newest');
 
   // Video Multi-selection State
@@ -101,7 +100,6 @@ export default function LibraryPage() {
     setSearch('');
     setSelectedChannel('');
     setSelectedCategory('');
-    setSelectedRecognitionType('');
     setSortBy('newest');
   };
 
@@ -109,7 +107,6 @@ export default function LibraryPage() {
     (search ? 1 : 0) +
     (selectedChannel ? 1 : 0) +
     (selectedCategory ? 1 : 0) +
-    (selectedRecognitionType ? 1 : 0) +
     (sortBy !== 'newest' ? 1 : 0);
 
   // Modals
@@ -125,7 +122,6 @@ export default function LibraryPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [importChannelId, setImportChannelId] = useState<string>('');
   const [importCategoryId, setImportCategoryId] = useState<string>('');
-  const [importRecognitionType, setImportRecognitionType] = useState<'voice_only' | 'ocr_only' | 'ai_vision'>('voice_only');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     imported: any[];
@@ -160,61 +156,6 @@ export default function LibraryPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Recognition Type Helper & 1-click Toggle
-  const getRecognitionBadge = (type?: string | null): {
-    label: string;
-    icon: React.ReactNode;
-    badgeClass: string;
-    desc: string;
-  } => {
-    switch (type) {
-      case 'ocr_only':
-        return {
-          label: 'Có Sub (OCR)',
-          icon: <Captions size={12} className="text-purple-400 shrink-0" />,
-          badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/40 hover:bg-purple-500/30',
-          desc: 'Có sub, không lấy lời (Quét EasyOCR, tự che sub cũ)',
-        };
-      case 'ai_vision':
-        return {
-          label: 'Không Lời/Sub (AI)',
-          icon: <Sparkles size={12} className="text-amber-400 shrink-0" />,
-          badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/30',
-          desc: 'Không lời, không sub (AI Vision tự xem & biên kịch)',
-        };
-      case 'voice_only':
-      default:
-        return {
-          label: 'Có Lời (Whisper)',
-          icon: <Mic size={12} className="text-sky-400 shrink-0" />,
-          badgeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/40 hover:bg-sky-500/30',
-          desc: 'Có lời, không có sub (Whisper STT, giữ video sạch)',
-        };
-    }
-  };
-
-  const handleToggleRecognitionType = async (e: React.MouseEvent, video: VideoItem) => {
-    e.stopPropagation();
-    const current = video.recognition_type || 'voice_only';
-    const cycleMap: Record<string, string> = {
-      voice_only: 'ocr_only',
-      ocr_only: 'ai_vision',
-      ai_vision: 'voice_only',
-    };
-    const next = cycleMap[current] || 'voice_only';
-    try {
-      await libraryApi.updateRecognitionType(video.id, next);
-      setVideos((prev) =>
-        prev.map((v) => (v.id === video.id ? { ...v, recognition_type: next } : v))
-      );
-      if (previewVideo?.id === video.id) {
-        setPreviewVideo((prev) => (prev ? { ...prev, recognition_type: next } : null));
-      }
-    } catch (err: any) {
-      alert(err.message || 'Lỗi đổi phân loại video');
-    }
-  };
-
   // Load videos
   const loadVideos = async () => {
     try {
@@ -224,7 +165,6 @@ export default function LibraryPage() {
         search,
         channel_id: selectedChannel ? Number(selectedChannel) : '',
         category_id: selectedCategory ? Number(selectedCategory) : '',
-        recognition_type: selectedRecognitionType,
         sort_by: sortBy,
         limit: 50,
       });
@@ -266,7 +206,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     loadVideos();
-  }, [search, selectedChannel, selectedCategory, selectedRecognitionType, sortBy]);
+  }, [search, selectedChannel, selectedCategory, sortBy]);
 
   // Format helpers
   const formatDuration = (seconds?: number | null) => {
@@ -365,7 +305,7 @@ export default function LibraryPage() {
       });
       if (importChannelId) formData.append('channel_id', importChannelId);
       if (importCategoryId) formData.append('category_id', importCategoryId);
-      formData.append('recognition_type', importRecognitionType);
+      formData.append('recognition_type', 'voice_only');
 
       const res = await libraryApi.importVideos(formData);
       setImportResult({
@@ -476,12 +416,6 @@ export default function LibraryPage() {
     label: cat.name,
   }));
 
-  const recognitionOptions = [
-    { value: 'voice_only', label: 'Có lời, không sub (Whisper)' },
-    { value: 'ocr_only', label: 'Có sub, không lấy lời (OCR)' },
-    { value: 'ai_vision', label: 'Không lời, không sub (AI Vision)' },
-  ];
-
   const sortOptions = [
     { value: 'newest', label: 'Mới nhất' },
     { value: 'oldest', label: 'Cũ nhất' },
@@ -587,17 +521,6 @@ export default function LibraryPage() {
               allLabel="Tất cả danh mục"
               searchPlaceholder="Tìm kiếm danh mục..."
               icon={<Tag size={13} />}
-            />
-
-            {/* Recognition Type filter */}
-            <SearchableSelect
-              value={selectedRecognitionType}
-              onChange={setSelectedRecognitionType}
-              options={recognitionOptions}
-              placeholder="Tất cả đặc tính"
-              allLabel="Tất cả đặc tính"
-              allowSearch={false}
-              icon={<Sparkles size={13} />}
             />
 
             {/* Sort filter */}
@@ -883,27 +806,6 @@ export default function LibraryPage() {
                           {formatFileSize(video.file_size)}
                         </span>
                       </div>
-
-                      {/* Recognition Mode Badge (1-click cycle) */}
-                      {(() => {
-                        const badge = getRecognitionBadge(video.recognition_type);
-                        return (
-                          <div className="mt-2.5">
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleRecognitionType(e, video)}
-                              title={`${badge.desc} • Bấm để đổi loại nhận diện`}
-                              className={`w-full px-2 py-1 rounded-md text-[10.5px] font-medium border flex items-center justify-between transition cursor-pointer ${badge.badgeClass}`}
-                            >
-                              <span className="flex items-center gap-1.5 truncate">
-                                <span>{badge.icon}</span>
-                                <span className="truncate">{badge.label}</span>
-                              </span>
-                              <RotateCcw size={10} className="opacity-60 hover:opacity-100 shrink-0 ml-1" />
-                            </button>
-                          </div>
-                        );
-                      })()}
                     </div>
 
                     {/* Action Bar */}
@@ -992,22 +894,6 @@ export default function LibraryPage() {
                 <span>Dung lượng: <strong className="text-slate-200">{formatFileSize(previewVideo.file_size)}</strong></span>
                 <span>•</span>
                 <span>Trạng thái: <strong className="text-indigo-400 uppercase">{previewVideo.status}</strong></span>
-                <span>•</span>
-                {(() => {
-                  const badge = getRecognitionBadge(previewVideo.recognition_type);
-                  return (
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleRecognitionType(e, previewVideo)}
-                      title={`${badge.desc} • Bấm để đổi loại nhận diện`}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium border flex items-center gap-1.5 transition cursor-pointer ${badge.badgeClass}`}
-                    >
-                      <span>{badge.icon}</span>
-                      <span>{badge.label}</span>
-                      <RotateCcw size={10} className="opacity-60 hover:opacity-100 ml-0.5" />
-                    </button>
-                  );
-                })()}
               </div>
 
               <div className="flex items-center gap-2">
@@ -1214,120 +1100,6 @@ export default function LibraryPage() {
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* Phân loại đặc tính video nguồn (3 Trạng thái) */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-400" />
-                    Phân loại đặc tính video nguồn <span className="text-rose-400">*</span>
-                  </label>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Chọn đúng định dạng video gốc để Module Lồng Tiếng tự động kích hoạt chuẩn quy trình (quét OCR / nghe Whisper / AI Vision):
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                  {/* Trạng thái 1: Có lời, không có sub */}
-                  <div
-                    onClick={() => setImportRecognitionType('voice_only')}
-                    className={`p-4 sm:p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between select-none relative ${
-                      importRecognitionType === 'voice_only'
-                        ? 'bg-sky-500/15 border-sky-400 ring-2 ring-sky-500/50 shadow-lg shadow-sky-500/10'
-                        : 'bg-[#151822] border-slate-700/60 hover:border-slate-600 hover:bg-slate-800/40 opacity-80 hover:opacity-100'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-                          <Mic size={18} />
-                        </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                          importRecognitionType === 'voice_only'
-                            ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {importRecognitionType === 'voice_only' ? '✓ Đang chọn' : 'Chọn loại này'}
-                        </span>
-                      </div>
-                      <div className="text-sm font-bold text-white mb-1.5">Có lời, không sub</div>
-                      <p className="text-xs leading-relaxed text-slate-300">
-                        Whisper STT nghe giọng tiếng Trung, dịch & lồng tiếng Việt. Video gốc sạch không làm mờ.
-                      </p>
-                    </div>
-                    <div className="mt-3.5 pt-2.5 border-t border-slate-700/50 text-[11px] font-mono text-sky-400 flex items-center justify-between">
-                      <span className="font-semibold">Mã quy trình:</span>
-                      <span className="bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">voice_only</span>
-                    </div>
-                  </div>
-
-                  {/* Trạng thái 2: Có sub, không lấy lời */}
-                  <div
-                    onClick={() => setImportRecognitionType('ocr_only')}
-                    className={`p-4 sm:p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between select-none relative ${
-                      importRecognitionType === 'ocr_only'
-                        ? 'bg-purple-500/15 border-purple-400 ring-2 ring-purple-500/50 shadow-lg shadow-purple-500/10'
-                        : 'bg-[#151822] border-slate-700/60 hover:border-slate-600 hover:bg-slate-800/40 opacity-80 hover:opacity-100'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
-                          <Captions size={18} />
-                        </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                          importRecognitionType === 'ocr_only'
-                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {importRecognitionType === 'ocr_only' ? '✓ Đang chọn' : 'Chọn loại này'}
-                        </span>
-                      </div>
-                      <div className="text-sm font-bold text-white mb-1.5">Có sub, không lời</div>
-                      <p className="text-xs leading-relaxed text-slate-300">
-                        EasyOCR quét chữ cứng trên màn hình, dịch, tự động làm mờ sub cũ và dán phụ đề mới.
-                      </p>
-                    </div>
-                    <div className="mt-3.5 pt-2.5 border-t border-slate-700/50 text-[11px] font-mono text-purple-400 flex items-center justify-between">
-                      <span className="font-semibold">Mã quy trình:</span>
-                      <span className="bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">ocr_only</span>
-                    </div>
-                  </div>
-
-                  {/* Trạng thái 3: Không lời, không sub */}
-                  <div
-                    onClick={() => setImportRecognitionType('ai_vision')}
-                    className={`p-4 sm:p-5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between select-none relative ${
-                      importRecognitionType === 'ai_vision'
-                        ? 'bg-amber-500/15 border-amber-400 ring-2 ring-amber-500/50 shadow-lg shadow-amber-500/10'
-                        : 'bg-[#151822] border-slate-700/60 hover:border-slate-600 hover:bg-slate-800/40 opacity-80 hover:opacity-100'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                          <Sparkles size={18} />
-                        </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                          importRecognitionType === 'ai_vision'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {importRecognitionType === 'ai_vision' ? '✓ Đang chọn' : 'Chọn loại này'}
-                        </span>
-                      </div>
-                      <div className="text-sm font-bold text-white mb-1.5">Không lời & sub (AI)</div>
-                      <p className="text-xs leading-relaxed text-slate-300">
-                        AI Multimodal Vision tự xem video, hiểu thao tác sản phẩm và tự biên kịch lời thuyết minh.
-                      </p>
-                    </div>
-                    <div className="mt-3.5 pt-2.5 border-t border-slate-700/50 text-[11px] font-mono text-amber-400 flex items-center justify-between">
-                      <span className="font-semibold">Mã quy trình:</span>
-                      <span className="bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">ai_vision</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 

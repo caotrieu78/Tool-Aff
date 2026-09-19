@@ -45,112 +45,222 @@ import base64
 import httpx
 
 KIE_BASE_URL = "https://api.kie.ai"
-KIE_GEMINI_MODEL = "gemini-3-8-flash"
+KIE_GEMINI_MODEL = "gemini-3-5-flash"
+KIE_CANDIDATE_MODELS = ["gemini-3-5-flash", "gemini-3-8-flash", "gemini-3-7-flash"]
 
 
-def test_kie_key(api_key: str) -> Dict[str, Any]:
+def test_kie_key(api_key: str, model_name: str = "auto") -> Dict[str, Any]:
     """
-    Kiểm tra nhanh tính hợp lệ và độ trễ của API key Kie.ai (Gemini 3.8 Flash).
-    Endpoint: https://api.kie.ai/gemini/v1/models/gemini-3-8-flash:generateContent
+    Kiểm tra nhanh tính hợp lệ và độ trễ của API key Kie.ai.
+    Hỗ trợ cả OpenAI Chat Completions (gpt-5-2, ...) và Gemini native.
+    Nếu model_name="auto", ưu tiên test gpt-5-2 (đang ổn định nhất trên Kie.ai),
+    sau đó fallback thử gemini nếu cần.
     """
-    start_time = time.time()
-    url = f"{KIE_BASE_URL}/gemini/v1/models/{KIE_GEMINI_MODEL}:generateContent"
-    headers = {
-        "Authorization": f"Bearer {api_key.strip()}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": "Xin chào, hãy trả lời đúng 1 chữ: OK"}],
-            }
-        ]
-    }
-    try:
-        with httpx.Client(timeout=15.0) as client:
-            resp = client.post(url, headers=headers, json=payload)
+    clean_model = (model_name or "auto").strip().lower()
+
+    # Helper: Test OpenAI format (gpt-5-2, etc.)
+    def _test_openai(target_model: str) -> Dict[str, Any]:
+        start_time = time.time()
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": target_model,
+            "messages": [{"role": "user", "content": "Xin chào, hãy trả lời đúng 1 chữ: OK"}],
+            "stream": False,
+        }
+        url = f"{KIE_BASE_URL}/v1/chat/completions"
+        try:
+            with httpx.Client(timeout=25.0) as client:
+                resp = client.post(url, headers=headers, json=payload)
+                latency_ms = int((time.time() - start_time) * 1000)
+                if resp.status_code == 401:
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "is_invalid": True,
+                        "latency_ms": latency_ms,
+                        "message": "API Key Kie.ai không hợp lệ hoặc đã hết hạn (401)",
+                        "error": resp.text[:120],
+                    }
+                elif resp.status_code in (402, 429):
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "is_rate_limited": True,
+                        "latency_ms": latency_ms,
+                        "message": "Tài khoản Kie.ai đã hết credit hoặc bị giới hạn tốc độ (402/429)",
+                        "error": resp.text[:120],
+                    }
+                elif resp.status_code != 200:
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "latency_ms": latency_ms,
+                        "message": f"Kie.ai ({target_model}) lỗi HTTP {resp.status_code}: {resp.text[:100]}",
+                        "error": resp.text[:120],
+                    }
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = {}
+
+                if "error" in data:
+                    err_msg = str(data["error"])
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "latency_ms": latency_ms,
+                        "message": f"Kie.ai lỗi: {err_msg[:80]}",
+                        "error": err_msg,
+                    }
+
+                choices = data.get("choices", [])
+                if choices:
+                    reply_text = choices[0].get("message", {}).get("content", "").strip()
+                    credits = data.get("usage", {}).get("total_tokens", 0)
+                    return {
+                        "valid": True,
+                        "provider": "kie",
+                        "latency_ms": latency_ms,
+                        "model_used": target_model,
+                        "message": f"Key Kie.ai ({target_model}) hoạt động rất tốt",
+                        "reply": reply_text,
+                        "credits_consumed": credits,
+                    }
+                return {
+                    "valid": False,
+                    "provider": "kie",
+                    "latency_ms": latency_ms,
+                    "message": f"Kie.ai ({target_model}) trả về rỗng",
+                    "error": resp.text[:100],
+                }
+        except Exception as e:
             latency_ms = int((time.time() - start_time) * 1000)
-
-            try:
-                data = resp.json()
-            except Exception:
-                data = {}
-
-            # Kie.ai trả HTTP 200 kèm {"code": 401, "msg": "..."} khi sai key
-            code = data.get("code")
-            if code is not None and code != 200:
-                msg = data.get("msg") or data.get("message") or f"Lỗi Kie.ai (mã {code})"
-                is_invalid = code == 401 or "unauthorized" in msg.lower() or "auth" in msg.lower()
-                is_quota = code in (402, 429) or "quota" in msg.lower() or "credit" in msg.lower()
-                return {
-                    "valid": False,
-                    "provider": "kie",
-                    "is_invalid": is_invalid,
-                    "is_rate_limited": is_quota,
-                    "latency_ms": latency_ms,
-                    "message": f"Kie.ai: {msg}",
-                    "error": msg,
-                }
-
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and "text" in p)
-                credits_consumed = data.get("credits_consumed", 0)
-                return {
-                    "valid": True,
-                    "provider": "kie",
-                    "latency_ms": latency_ms,
-                    "model_used": KIE_GEMINI_MODEL,
-                    "message": f"Key Gemini ({KIE_GEMINI_MODEL}) hoạt động hoàn hảo",
-                    "reply": text.strip(),
-                    "credits_consumed": credits_consumed,
-                }
-
-            if not candidates and resp.status_code == 200:
-                return {
-                    "valid": False,
-                    "provider": "kie",
-                    "latency_ms": latency_ms,
-                    "message": data.get("msg") or "Kie.ai không trả về candidate hợp lệ",
-                    "error": str(data)[:200],
-                }
-
-            err_body = resp.text
-            err_lower = err_body.lower()
-            is_invalid = False
-            is_quota = False
-
-            if resp.status_code == 401 or "unauthorized" in err_lower or "auth" in err_lower:
-                is_invalid = True
-                msg = "API Key Kie.ai không hợp lệ hoặc Bearer token không đúng"
-            elif resp.status_code in (402, 429) or "quota" in err_lower or "credit" in err_lower:
-                is_quota = True
-                msg = "Tài khoản Kie.ai đã hết credit hoặc chạm giới hạn tốc độ"
-            elif resp.status_code in (500, 502, 503, 504):
-                msg = f"Máy chủ Kie.ai tạm thời quá tải ({resp.status_code})"
-            else:
-                msg = f"Lỗi Kie.ai (HTTP {resp.status_code}): {err_body[:120]}"
-
             return {
                 "valid": False,
                 "provider": "kie",
-                "is_invalid": is_invalid,
-                "is_rate_limited": is_quota,
                 "latency_ms": latency_ms,
-                "message": msg,
-                "error": err_body[:200],
+                "message": f"Lỗi kết nối Kie.ai ({target_model}): {str(e)[:80]}",
+                "error": str(e),
             }
-    except Exception as e:
-        latency_ms = int((time.time() - start_time) * 1000)
-        return {
-            "valid": False,
-            "provider": "kie",
-            "latency_ms": latency_ms,
-            "message": f"Lỗi kết nối máy chủ AI: {str(e)[:120]}",
-            "error": str(e),
+
+    # Helper: Test Gemini native endpoint
+    def _test_gemini(target_model: str) -> Dict[str, Any]:
+        start_time = time.time()
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
         }
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": "Xin chào, hãy trả lời đúng 1 chữ: OK"}],
+                }
+            ]
+        }
+        url = f"{KIE_BASE_URL}/gemini/v1/models/{target_model}:generateContent"
+        try:
+            with httpx.Client(timeout=8.0) as client:
+                resp = client.post(url, headers=headers, json=payload)
+                latency_ms = int((time.time() - start_time) * 1000)
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = {}
+
+                code = data.get("code")
+                if code is not None and code != 200:
+                    msg = data.get("msg") or data.get("message") or f"Lỗi Kie.ai (mã {code})"
+                    is_invalid = code == 401 or "unauthorized" in msg.lower() or "auth" in msg.lower()
+                    is_quota = code in (402, 429) or "quota" in msg.lower() or "credit" in msg.lower()
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "is_invalid": is_invalid,
+                        "is_rate_limited": is_quota,
+                        "latency_ms": latency_ms,
+                        "message": f"Kie.ai ({target_model}): {msg}",
+                        "error": msg,
+                    }
+
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and "text" in p)
+                    credits_consumed = data.get("credits_consumed", 0)
+                    return {
+                        "valid": True,
+                        "provider": "kie",
+                        "latency_ms": latency_ms,
+                        "model_used": target_model,
+                        "message": f"Key Kie.ai ({target_model}) hoạt động tốt",
+                        "reply": text.strip(),
+                        "credits_consumed": credits_consumed,
+                    }
+
+                if resp.status_code == 401:
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "is_invalid": True,
+                        "latency_ms": latency_ms,
+                        "message": "API Key Kie.ai không hợp lệ hoặc đã hết hạn",
+                        "error": resp.text[:120],
+                    }
+                elif resp.status_code in (402, 429):
+                    return {
+                        "valid": False,
+                        "provider": "kie",
+                        "is_rate_limited": True,
+                        "latency_ms": latency_ms,
+                        "message": "Tài khoản Kie.ai đã hết credit hoặc bị rate limit",
+                        "error": resp.text[:120],
+                    }
+
+                err_txt = resp.text[:120]
+                if resp.status_code == 500 or "server exception" in err_txt.lower():
+                    msg = f"Kie.ai model {target_model} đang bảo trì (500 Server Exception)"
+                else:
+                    msg = f"Kie.ai ({target_model}) HTTP {resp.status_code}: {err_txt}"
+                return {
+                    "valid": False,
+                    "provider": "kie",
+                    "latency_ms": latency_ms,
+                    "message": msg,
+                    "error": err_txt,
+                }
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            return {
+                "valid": False,
+                "provider": "kie",
+                "latency_ms": latency_ms,
+                "message": f"Lỗi kết nối Kie.ai ({target_model}): {str(e)[:80]}",
+                "error": str(e),
+            }
+
+    # Điều phối theo clean_model:
+    if clean_model == "auto":
+        # Thử GPT-5.2 trước vì hiện tại là model mượt và ổn định nhất của Kie.ai
+        res = _test_openai("gpt-5-2")
+        if res["valid"]:
+            return res
+        if res.get("is_invalid") or res.get("is_rate_limited"):
+            return res
+        # Nếu GPT-5.2 gặp lỗi mạng/server, thử các model Gemini
+        for g_model in ["gemini-3-5-flash", "gemini-3-8-flash"]:
+            g_res = _test_gemini(g_model)
+            if g_res["valid"]:
+                return g_res
+        return res
+
+    if clean_model.startswith("gpt-"):
+        return _test_openai(clean_model)
+    else:
+        return _test_gemini(clean_model)
 
 
 def test_google_key(api_key: str) -> Dict[str, Any]:
@@ -233,15 +343,20 @@ def test_google_key(api_key: str) -> Dict[str, Any]:
     }
 
 
-def test_gemini_key(api_key: str, provider: Optional[str] = None) -> Dict[str, Any]:
+def test_gemini_key(
+    api_key: str,
+    provider: Optional[str] = None,
+    model_name: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Kiểm tra nhanh tính hợp lệ và độ trễ của API key (tự động nhận diện Google hoặc Kie.ai).
     """
     clean_key = api_key.strip()
     clean_provider = (provider or "").strip().lower()
+    selected_model = (model_name or "auto").strip()
 
     if clean_provider == "kie":
-        return test_kie_key(clean_key)
+        return test_kie_key(clean_key, model_name=selected_model)
     elif clean_provider == "google":
         return test_google_key(clean_key)
 
@@ -250,12 +365,12 @@ def test_gemini_key(api_key: str, provider: Optional[str] = None) -> Dict[str, A
         google_res = test_google_key(clean_key)
         if google_res["valid"]:
             return google_res
-        kie_res = test_kie_key(clean_key)
+        kie_res = test_kie_key(clean_key, model_name=selected_model)
         if kie_res["valid"]:
             return kie_res
         return google_res
     else:
-        kie_res = test_kie_key(clean_key)
+        kie_res = test_kie_key(clean_key, model_name=selected_model)
         if kie_res["valid"]:
             return kie_res
         google_res = test_google_key(clean_key)
@@ -278,11 +393,11 @@ async def call_kie_ai_gemini(
     clean_model = model_name.strip()
     # Chuẩn hóa tên model sang đúng format của kie.ai (dấu gạch ngang, không dấu chấm)
     if clean_model in ("gemini-3.8-flash", "gemini-3-8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"):
-        candidate_models = ["gemini-3-8-flash", "gemini-3-7-flash"]
+        candidate_models = ["gemini-3-5-flash", "gemini-3-8-flash", "gemini-3-7-flash"]
     elif clean_model in ("gemini-3.7-flash", "gemini-3-7-flash"):
-        candidate_models = ["gemini-3-7-flash", "gemini-3-8-flash"]
+        candidate_models = ["gemini-3-5-flash", "gemini-3-7-flash", "gemini-3-8-flash"]
     else:
-        candidate_models = [clean_model.replace(".", "-"), "gemini-3-8-flash", "gemini-3-7-flash"]
+        candidate_models = ["gemini-3-5-flash", clean_model.replace(".", "-"), "gemini-3-8-flash", "gemini-3-7-flash"]
 
     headers = {
         "Authorization": f"Bearer {api_key.strip()}",
@@ -430,6 +545,111 @@ async def call_kie_ai_gemini(
     raise RuntimeError(f"Kie.ai khong the xu ly: {last_err_msg}")
 
 
+async def call_kie_ai_openai(
+    api_key: str,
+    prompt: Any,
+    system_instruction: Optional[str] = None,
+    model_name: str = "gpt-5-2",
+) -> str:
+    """
+    Gọi Kie.ai qua giao thức OpenAI Chat Completions (POST https://api.kie.ai/v1/chat/completions).
+    Hỗ trợ đầy đủ văn bản và Multimodal Vision (hình ảnh keyframe base64).
+    Tương thích với các model: gpt-5-2, gpt-4o, ...
+    """
+    headers = {
+        "Authorization": f"Bearer {api_key.strip()}",
+        "Content-Type": "application/json",
+    }
+
+    messages: List[Dict[str, Any]] = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+
+    # Xử lý prompt: có thể là string hoặc list các part (text / base64 image)
+    user_content: Any = None
+    if isinstance(prompt, str):
+        user_content = prompt
+    elif isinstance(prompt, list):
+        has_image = False
+        parts_data: List[Dict[str, Any]] = []
+        for item in prompt:
+            if isinstance(item, str):
+                parts_data.append({"type": "text", "text": item})
+            elif isinstance(item, dict):
+                if "text" in item:
+                    parts_data.append({"type": "text", "text": item["text"]})
+                elif "data" in item or "inline_data" in item:
+                    has_image = True
+                    raw_bytes = item.get("data") or item.get("inline_data", {}).get("data", "")
+                    mime = item.get("mime_type") or item.get("inline_data", {}).get("mime_type", "image/jpeg")
+                    b64 = base64.b64encode(raw_bytes).decode("utf-8") if isinstance(raw_bytes, bytes) else str(raw_bytes)
+                    parts_data.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{b64}"}
+                    })
+                else:
+                    parts_data.append({"type": "text", "text": json.dumps(item, ensure_ascii=False)})
+            elif hasattr(item, "inline_data") and getattr(item, "inline_data", None) is not None:
+                has_image = True
+                inline = getattr(item, "inline_data")
+                raw_bytes = getattr(inline, "data", b"")
+                mime = getattr(inline, "mime_type", "image/jpeg")
+                b64 = base64.b64encode(raw_bytes).decode("utf-8") if isinstance(raw_bytes, bytes) else str(raw_bytes)
+                parts_data.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime};base64,{b64}"}
+                })
+            elif hasattr(item, "text") and getattr(item, "text", None):
+                parts_data.append({"type": "text", "text": str(getattr(item, "text"))})
+            elif isinstance(item, bytes):
+                has_image = True
+                b64 = base64.b64encode(item).decode("utf-8")
+                parts_data.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+                })
+            else:
+                parts_data.append({"type": "text", "text": str(item)})
+
+        if has_image:
+            user_content = parts_data
+        else:
+            user_content = "\n\n".join([p["text"] for p in parts_data if "text" in p])
+    else:
+        user_content = str(prompt)
+
+    messages.append({"role": "user", "content": user_content})
+
+    payload = {
+        "model": model_name,
+        "messages": messages,
+        "temperature": 0.7,
+        "stream": False,
+    }
+
+    url = f"{KIE_BASE_URL}/v1/chat/completions"
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(url, headers=headers, json=payload)
+        if resp.status_code == 401:
+            raise RuntimeError(f"Kie.ai 401 Unauthorized: API Key không hợp lệ")
+        elif resp.status_code in (402, 429):
+            raise RuntimeError(f"Kie.ai {resp.status_code} Quota/Credits Exceeded")
+        elif resp.status_code != 200:
+            raise RuntimeError(f"Kie.ai OpenAI HTTP {resp.status_code}: {resp.text[:200]}")
+
+        data = resp.json()
+        if "error" in data:
+            raise RuntimeError(f"Kie.ai OpenAI error: {data['error']}")
+
+        choices = data.get("choices", [])
+        if not choices:
+            raise RuntimeError(f"Kie.ai OpenAI trả về rỗng: {resp.text[:200]}")
+
+        content = choices[0].get("message", {}).get("content", "")
+        if not content:
+            raise RuntimeError(f"Kie.ai OpenAI message content rỗng")
+        return content.strip()
+
 
 class GeminiKeyPool:
     """
@@ -513,18 +733,25 @@ class GeminiKeyPool:
         if not keys:
             if settings.KIE_API_KEY:
                 logger.info("Using fallback KIE_API_KEY from environment/settings")
-                return await call_kie_ai_gemini(
-                    api_key=settings.KIE_API_KEY,
-                    prompt=prompt,
-                    system_instruction=system_instruction,
-                    model_name=model_name,
-                )
+                try:
+                    return await call_kie_ai_openai(
+                        api_key=settings.KIE_API_KEY,
+                        prompt=prompt,
+                        system_instruction=system_instruction,
+                        model_name="gpt-5-2",
+                    )
+                except Exception:
+                    return await call_kie_ai_gemini(
+                        api_key=settings.KIE_API_KEY,
+                        prompt=prompt,
+                        system_instruction=system_instruction,
+                        model_name=model_name,
+                    )
             raise RuntimeError(
                 "Chưa có Gemini / Kie.ai API Key nào khả dụng trong hệ thống! "
                 "Vui lòng vào mục 'Cài Đặt' để kiểm tra hoặc thêm key."
             )
 
-        models_to_try = [model_name] + [m for m in CANDIDATE_MODELS if m != model_name]
         last_error = None
 
         for raw_k in keys:
@@ -533,6 +760,21 @@ class GeminiKeyPool:
             key_id: int = int(key_record.id)
             provider: str = getattr(key_record, "provider", "google") or "google"
             is_def: bool = bool(getattr(key_record, "is_default", False))
+            preferred_model: str = (getattr(key_record, "preferred_model", "auto") or "auto").strip().lower()
+
+            if provider == "kie":
+                if preferred_model and preferred_model != "auto":
+                    models_to_try = [preferred_model]
+                    for fallback in ["gpt-5-2", "gemini-3-5-flash", "gemini-3-8-flash"]:
+                        if fallback not in models_to_try:
+                            models_to_try.append(fallback)
+                else:
+                    models_to_try = ["gpt-5-2", "gemini-3-5-flash", "gemini-3-8-flash"]
+            else:
+                if preferred_model and preferred_model != "auto":
+                    models_to_try = [preferred_model] + [m for m in CANDIDATE_MODELS if m != preferred_model]
+                else:
+                    models_to_try = [model_name] + [m for m in CANDIDATE_MODELS if m != model_name]
 
             for m_name in models_to_try:
                 try:
@@ -546,12 +788,20 @@ class GeminiKeyPool:
                     await db.commit()
 
                     if provider == "kie":
-                        reply = await call_kie_ai_gemini(
-                            api_key=api_key,
-                            prompt=prompt,
-                            system_instruction=system_instruction,
-                            model_name=m_name,
-                        )
+                        if m_name.startswith("gpt-"):
+                            reply = await call_kie_ai_openai(
+                                api_key=api_key,
+                                prompt=prompt,
+                                system_instruction=system_instruction,
+                                model_name=m_name,
+                            )
+                        else:
+                            reply = await call_kie_ai_gemini(
+                                api_key=api_key,
+                                prompt=prompt,
+                                system_instruction=system_instruction,
+                                model_name=m_name,
+                            )
                         GeminiKeyPool.clear_cooldown(key_id)
                         return reply
 
@@ -592,6 +842,20 @@ class GeminiKeyPool:
                     if "404" in err_str or "not found" in err_lower or "no longer available" in err_lower:
                         continue
 
+                    # Server Exception 500, timeout hoặc overload -> Chuyển sang model dự phòng tiếp theo
+                    if (
+                        "500" in err_str
+                        or "timeout" in err_lower
+                        or "timed out" in err_lower
+                        or "server exception" in err_lower
+                        or "capacity" in err_lower
+                    ):
+                        logger.warning(
+                            f"[AI Engine] Model {m_name} (Key #{key_id}) gặp sự cố ({err_str[:80]}). "
+                            f"Đang tự động chuyển sang model tiếp theo..."
+                        )
+                        continue
+
                     # Key sai hoàn toàn / bị thu hồi
                     if (
                         "401" in err_str
@@ -620,8 +884,8 @@ class GeminiKeyPool:
                         GeminiKeyPool.set_cooldown(key_id, seconds=45)
                         continue
 
-                    # Lỗi khác -> thử key tiếp theo
-                    break
+                    # Lỗi khác -> thử model hoặc key tiếp theo
+                    continue
 
         raise RuntimeError(
             f"Tất cả {len(keys)} Gemini API keys trong pool đều đang bận hoặc quá tải tạm thời! "
@@ -641,6 +905,17 @@ async def translate_chinese_segments(
     if not segments:
         return []
 
+    _STYLE_CHUAN_GOC = (
+        "Accurate 1:1 Dialogue Translation (GenSub/CapCut style): Translate the original spoken Chinese dialogue directly and faithfully into fluent, natural Vietnamese. "
+        "CRITICAL RULES: "
+        "(1) Translate ONLY what is actually spoken. DO NOT fabricate or invent new dialogue. "
+        "(2) MANDATORY CONTEXT-AWARE ASR REPAIR: The Chinese text was auto-recognized by Whisper STT and may contain homophone errors (wrong characters with same Pinyin). "
+        "Read ALL lines together to understand the scene (who is speaking, what situation, what emotion), then silently correct any misrecognized homophones BEFORE translating. "
+        "NEVER translate garbled/nonsensical Chinese literally — always reconstruct the most logical intended meaning from context first. "
+        "(3) The Vietnamese output MUST make complete logical sense and match the on-screen action. If a translation sounds absurd or disconnected, the STT made an error — fix it. "
+        "(4) Preserve exact meaning, tone, emotion, and character personality. "
+        "(5) Natural conversational Vietnamese only — no stiff Hán-Việt machine translation."
+    )
     _STYLE_REVIEW_PHIM = (
         "Movie-Review / Dramatic-Recap style: gripping, tense, fast-paced delivery "
         "(e.g. 'Watch this man closely...', 'No one expected that...', 'In the very next moment...'). "
@@ -664,6 +939,10 @@ async def translate_chinese_segments(
         "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
     )
     style_guide = {
+        "chuan_goc": _STYLE_CHUAN_GOC,
+        "chuẩn gốc": _STYLE_CHUAN_GOC,
+        "bám sát lời gốc": _STYLE_CHUAN_GOC,
+        "bám sát": _STYLE_CHUAN_GOC,
         "đời thường": "Natural, warm, everyday conversational tone. Short and casual, fitting a TikTok/Douyin short-video voiceover.",
         "hài hước": "Humorous, witty tone that follows youth trends. Playful and engaging.",
         "kể chuyện": "Warm, narrative, expressive tone, as if confiding in someone or telling a captivating story.",
@@ -672,8 +951,6 @@ async def translate_chinese_segments(
         # giữ cả 2 để không phá cấu hình cũ đã lưu trước đây, chỉ trỏ chung 1 nội dung để tránh lệch nhau.
         "review_phim": _STYLE_REVIEW_PHIM,
         "review phim": _STYLE_REVIEW_PHIM,
-        # id thực tế frontend gửi cho thẻ "Phim AI / Hoạt hình" là "hoạt hình" — trước đây dict chỉ có
-        # "hoat_hinh_ai"/"phim_ai" nên chọn thẻ này bị rơi về style mặc định chung chung, không đúng ý.
         "hoạt hình": _STYLE_HOAT_HINH,
         "hoat_hinh_ai": _STYLE_HOAT_HINH,
         "phim_ai": _STYLE_HOAT_HINH,
@@ -697,43 +974,63 @@ async def translate_chinese_segments(
         )
 
     system_instruction = (
-        "You are a professional scriptwriter and translator for short Douyin/TikTok videos, translating into Vietnamese.\n"
-        "TASK: Translate the Chinese dialogue script into fluent, contextually accurate Vietnamese.\n"
-        f"Required style:\n{selected_style_guide}\n"
-        "IMPORTANT RULES:\n"
-        "1. Preserve the exact number of lines and the matching ID for each segment.\n"
-        "2. Keep each translated Vietnamese line concise and proportional to its duration_sec (approx. 3-4 syllables per second).\n"
-        "   DO NOT add extra long sentences or lengthy sales pitches to short clips so that the voiceover stays in sync with the video visuals.\n"
-        "3. Output ONLY a plain JSON array — no surrounding markdown fences and no extra commentary.\n"
-        "4. The translated text itself must be written in natural, fluent Vietnamese (this is the final language shown to end users)."
+        "Bạn là Chuyên gia Dịch thuật & Biên kịch Lồng tiếng Phim/Video ngắn Douyin - TikTok hàng đầu Việt Nam (chuẩn điện ảnh quốc tế tương tự GenSubAI / CapCut).\n"
+        "NHIỆM VỤ: Chuyển thể các câu thoại tiếng Trung (thu được từ nhận diện giọng nói Whisper STT) sang Tiếng Việt Tự Nhiên, Sinh Động, Bắt Tai và Chuẩn Ngữ Cảnh 100%.\n\n"
+        f"Yêu cầu phong cách: {selected_style_guide}\n\n"
+        "BỘ NGUYÊN TẮC VÀNG DỊCH THUẬT & KHỚP KHẨU HÌNH (ÁP DỤNG CHO MỌI THỂ LOẠI VIDEO):\n\n"
+        "1. CƠ CHẾ HIỆU ĐÍNH NGỮ ÂM AI (ASR PHONETIC CONTEXTUAL DECODER):\n"
+        "   - Văn bản gốc được trích xuất tự động từ âm thanh bằng AI (Whisper STT). Do ảnh hưởng của nhạc nền, tiếng thở, giọng nhân vật hoạt hình hoặc khẩu âm địa phương, nhiều chữ Hán có thể bị nhận diện nhầm thành TỪ ĐỒNG ÂM (cùng âm đọc Pinyin nhưng sai mặt chữ Hán, ví dụ thành ngữ, từ lóng, danh từ xưng hô).\n"
+        "   - NGUYÊN TẮC BẮT BUỘC: Đọc toàn bộ chuỗi hội thoại của phân cảnh, dựa vào âm đọc Pinyin và logic cốt truyện để KHÔI PHỤC CHÍNH XÁC Ý NGHĨA THỰC SỰ mà nhân vật đang nói. Tuyệt đối không bao giờ dịch bám chấp mù quáng vào từng mặt chữ Hán bị nghe nhầm.\n"
+        "   - CÁC VÍ DỤ ĐỒNG ÂM KINH ĐIỂN CẦN TỰ ĐỘNG SỬA:\n"
+        "     * 我应了/我硬了...你就放了我熊殿/兄弟 -> Âm Pinyin gốc: 'Wǒ yíng le nǐ jiù fàng le wǒ xiōngdì' (我赢了你就放了我兄弟). Dịch chuẩn: 'Nếu tao thắng thì mày phải thả anh em tao ra!' (TUYỆT ĐỐI CẤM dịch ngô nghê thành 'Tao đồng ý thì mày thả tao ra' làm ngược hoàn toàn tình huống nhân vật thách đấu cứu bạn!).\n"
+        "     * 就屏你 / 就瓶你 / 就聘你 -> Âm Pinyin gốc: '就凭你？' (Chỉ dựa vào loại như mày á? / Cỡ như chú mà đòi so à?).\n"
+        "     * 那就赖吧 / 那就来巴 -> Âm Pinyin gốc: '那就来吧！' (Thế thì nhào vô! / Được, tới luôn đi!).\n"
+        "     * 我用这一车紧转/金转 和你换回胖毛/胖猫 -> Âm Pinyin gốc: 'Wǒ yòng zhè yī chē jīnzhuān, hé nǐ huàn huí Pàngmāo' (我用这一车金砖, 和你换回胖猫). Dịch chuẩn: 'Tao dùng cả xe gạch vàng này đổi lấy Mèo Béo!'.\n"
+        "     * 小体右眼不是台山 / 小体有眼... -> Âm Pinyin gốc: '小弟有眼不识泰山' (Tiểu đệ có mắt như mù không thấy Thái Sơn!).\n"
+        "     * 胖毛被黑石团火/团伙抓了 -> Gốc: '胖猫被黑石团伙抓了' (Mèo Béo bị băng nhóm Hắc Thạch bắt rồi!).\n"
+        "     * 这下胖毛又救了 / 救了 -> Gốc: '这下胖猫有救了！' (Lần này Mèo Béo được cứu rồi!).\n"
+        "     * 哎呀妈呀 / 吓死老子了 / 吓死绿了 -> Khẩu ngữ Đông Bắc: 'Ái da má ơi!', 'Dọa chết khiếp rồi!'.\n"
+        "     * 大丝 / 大帝 / 大士 -> Gốc: '大哥 / 大师' (Đại ca! / Sư phụ!).\n"
+        "   - BẢO ĐẢM TÍNH LOGIC HÀNH ĐỘNG CỦA CÂU CHUYỆN: Lời thoại phải phản ánh đúng hành vi của nhân vật (ai thách đấu, ai bị trói, ai cứu người), không bao giờ dịch ra những câu phi logic hoặc câu văn dịch máy tối nghĩa.\n\n"
+        "2. TUYỆT ĐỐI XÓA BỎ DỊCH THÔ HÁN VIỆT & VĂN PHONG DỊCH MÁY:\n"
+        "   - NGHIÊM CẤM dịch âm Hán Việt thô, tối nghĩa, ngô nghê hoặc câu từ sáo rỗng mà người Việt hiện đại không ai dùng trong giao tiếp đời thường.\n"
+        "   - Chuyển ngữ sang KHẨU NGỮ TIẾNG VIỆT ĐỜI THƯỜNG: tự nhiên, sinh động, biểu cảm, giàu cảm xúc, dí dỏm, sử dụng linh hoạt các từ cảm thán và quán ngữ Việt Nam (như: 'Trời đất ơi là trời', 'tóm cổ', 'nhào vô', 'tới công chuyện luôn', 'có mắt không thấy Thái Sơn', 'cho biết thế nào là lễ độ'...). \n\n"
+        "3. XƯNG HÔ ĐIỆN ẢNH HÀO SẢNG & THÍCH HỢP:\n"
+        "   - Xưng hô điện ảnh sinh động: Trong các cảnh thách đấu anh hùng cứu bạn, dùng xưng hô phóng khoáng, hào sảng (Tôi - Ông / Ta - Ngươi / Tôi - Chú / Mày - Tao tùy độ căng thẳng nhưng phải có cảm xúc, không thô thiển cục súc).\n"
+        "4. ĐỒNG BỘ KHỚP NHÉP MIỆNG & THỜI LƯỢNG NÓI (LIP-SYNC CADENCE - QUY TẮC SỐNG CÒN):\n"
+        "   - Mỗi câu thoại có `duration_sec` và yêu cầu `target_syllables`. Nhân vật trên màn hình mở miệng nói liên tục trong đúng `duration_sec` giây. Tốc độ đọc tiếng Việt chuẩn là ~3.2 - 3.8 âm tiết / giây (mỗi âm tiết = 1 từ tiếng Việt).\n"
+        "   - BẮT BUỘC: Câu tiếng Việt `vi` PHẢI ĐẠT ĐỘ DÀI ÂM TIẾT nằm đúng trong khoảng `target_syllables` yêu cầu.\n"
+        "   - NẾU `duration_sec` DÀI (từ 3.5s trở lên): TUYỆT ĐỐI CẤM DỊCH NGẮN CỦN CỠN 5-8 CHỮ! Dịch ngắn sẽ làm tiếng dứt quá sớm trong khi nhân vật vẫn tiếp tục nhép miệng cử động trên màn hình mà không có tiếng (lệch khẩu hình nặng). Hãy diễn đạt đầy đủ nội dung, kết hợp thêm từ ngữ khẩu ngữ, thán từ cảm thán, ngữ điệu tự nhiên sinh động của tiếng Việt (như: 'Trời đất ơi là trời...', 'Có nghe rõ không đấy...', 'Phen này thì...', 'Mau mau...', 'Thế này thì chịu rồi...', 'Bỏ qua cho em lần này...') để câu nói kéo dài lấp đầy vừa vặn trọn vẹn thời lượng nhân vật đang cử động miệng!\n"
+        "   - NẾU `duration_sec` NGẮN (<= 2s): Dịch thật gãy gọn, súc tích, dứt khoát đúng số từ yêu cầu để tránh nói tràn sang câu tiếp theo.\n\n"
+        "5. TUYỆT ĐỐI 100% TIẾNG VIỆT THUẦN TÚY (BẮT BUỘC):\n"
+        "   - Tuyệt đối không được để sót bất kỳ một chữ Hán / ký tự tiếng Trung nào trong bản dịch 'vi'. Mọi từ đều phải được dịch hoàn toàn sang chữ quốc ngữ tiếng Việt Latinh.\n\n"
+        "6. ĐỊNH DẠNG ĐẦU RA:\n"
+        "   Chỉ xuất kết quả dưới dạng mảng JSON thuần túy: [{\"id\": 0, \"vi\": \"...\"}], tuyệt đối không bọc markdown ```json và không kèm bất kỳ bình luận giải thích nào."
     )
 
-    # Video dài -> nhiều segment -> gửi hết 1 lần dễ khiến Gemini trả lời bị cắt giữa chừng (JSON hỏng),
-    # trước đây khi đó TOÀN BỘ segment sẽ rơi về fallback giữ nguyên tiếng Trung mà không có cảnh báo gì.
-    # Chia nhỏ theo lô để mỗi phản hồi luôn đủ ngắn để Gemini trả lời trọn vẹn, và nếu 1 lô lỗi thì
-    # chỉ các câu trong lô đó bị ảnh hưởng chứ không phải toàn bộ video.
     BATCH_SIZE = 40
     batches = [segments[i : i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
-    # Giới hạn số lô dịch song song để không dồn dập request lên cùng 1 API key trong pool.
     semaphore = asyncio.Semaphore(3)
 
     async def _translate_batch(batch: List[Dict[str, Any]]) -> Dict[Any, str]:
+        batch_items = []
+        for i, s in enumerate(batch):
+            dur = round(float(s.get("end", 0.0)) - float(s.get("start", 0.0)), 2)
+            dur = max(0.4, dur)
+            min_syl = max(3, int(round(dur * 3.2)))
+            max_syl = max(min_syl + 1, int(round(dur * 3.8)))
+            batch_items.append({
+                "id": s.get("id", i),
+                "zh": s.get("text", ""),
+                "duration_sec": dur,
+                "target_syllables": f"{min_syl}-{max_syl} chữ",
+            })
+
         prompt = (
             "Translate the following list of lines into Vietnamese. Return the result as a JSON array:\n"
             '[{"id": 0, "vi": "Vietnamese translation"}, ...]\n\n'
             "Source data:\n"
-            + json.dumps(
-                [
-                    {
-                        "id": s.get("id", i),
-                        "zh": s.get("text", ""),
-                        "duration_sec": round(float(s.get("end", 0.0)) - float(s.get("start", 0.0)), 2),
-                    }
-                    for i, s in enumerate(batch)
-                ],
-                ensure_ascii=False,
-                indent=2,
-            )
+            + json.dumps(batch_items, ensure_ascii=False, indent=2)
         )
         async with semaphore:
             try:
@@ -744,10 +1041,8 @@ async def translate_chinese_segments(
                 )
                 return _parse_translation_reply(raw_reply)
             except Exception as e:
-                logger.warning(
-                    f"[Translate] Lỗi dịch 1 lô ({len(batch)} câu): {e} — các câu trong lô này sẽ giữ nguyên văn gốc"
-                )
-                return {}
+                logger.error(f"[Translate] Lỗi dịch lô ({len(batch)} câu): {e}")
+                raise RuntimeError(f"Lỗi dịch AI Gemini: {e}")
 
     batch_results = await asyncio.gather(*[_translate_batch(b) for b in batches])
     trans_map: Dict[Any, str] = {}
@@ -756,53 +1051,124 @@ async def translate_chinese_segments(
 
     # Merge back to segments
     result = []
-    untranslated_count = 0
     for i, s in enumerate(segments):
         seg_id = s.get("id", i)
-        vi_text = trans_map.get(seg_id)
+        vi_text = (
+            trans_map.get(seg_id)
+            or trans_map.get(str(seg_id))
+            or (trans_map.get(int(seg_id)) if isinstance(seg_id, str) and seg_id.isdigit() else None)
+            or trans_map.get(i)
+            or trans_map.get(str(i))
+        )
         if not vi_text:
-            untranslated_count += 1
-            vi_text = s.get("text", "")
+            # Fallback dịch riêng dòng này nếu LLM vô tình bỏ sót
+            try:
+                logger.warning(f"[Translate] Câu thoại #{seg_id} bị sót trong batch, gọi AI dịch bổ sung...")
+                single_reply = await GeminiKeyPool.call_with_failover(
+                    db=db,
+                    prompt=f"Dịch câu thoại sau sang tiếng Việt tự nhiên ngắn gọn đúng tinh thần phim: {s.get('text', '')}. CHỈ trả về đúng câu tiếng Việt dịch được, không kèm JSON, không kèm id hay bất kỳ định dạng nào.",
+                    system_instruction="Bạn là chuyên gia dịch thuật phim. Nhiệm vụ: Dịch câu thoại sang tiếng Việt tự nhiên, đời thường. CHỈ TRẢ VỀ DUY NHẤT CÂU TIẾNG VIỆT THUẦN TÚY, TUYỆT ĐỐI KHÔNG TRẢ VỀ JSON, KHÔNG NGOẶC VUÔNG, KHÔNG KÈM GIẢI THÍCH.",
+                )
+                vi_text = _clean_vi_text(single_reply)
+            except Exception as e:
+                logger.error(f"[Translate] Thử dịch lại câu #{seg_id} thất bại: {e}")
+                raise RuntimeError(f"Câu thoại #{seg_id} không dịch được sang tiếng Việt. Vui lòng kiểm tra lại API Key.")
+
+        vi_text = _clean_vi_text(vi_text)
         result.append({
             **s,
             "text_vi": vi_text,
         })
 
-    if untranslated_count:
-        logger.warning(
-            f"[Translate] {untranslated_count}/{len(segments)} câu không dịch được (lỗi API hoặc JSON phản hồi hỏng), "
-            "đang giữ nguyên văn gốc (tiếng Trung) cho các câu này."
-        )
-
     return result
+
+
+def _clean_vi_text(text: str) -> str:
+    """
+    Xóa bỏ hoàn toàn các ký tự cú pháp JSON bị rò rỉ ([{id:0,vi:...}]),
+    loại bỏ chữ Hán còn sót lại và chuẩn hóa khoảng trắng.
+    """
+    if not text:
+        return ""
+    text = text.strip()
+
+    # 1. Bóc tách nếu văn bản vô tình bị bọc trong cú pháp JSON/regex
+    # Ví dụ: [{id:0,vi:Dùng điện thoại...}] hoặc {"id":0,"vi":"Dùng điện thoại..."}
+    m = re.search(r'["\']?vi["\']?\s*:\s*["\']?(.*?)(?:["\']?\s*\}|\]|\Z)', text, re.DOTALL | re.IGNORECASE)
+    if m:
+        extracted = m.group(1).strip()
+        if extracted:
+            text = extracted
+
+    # Loại bỏ tiền tố JSON còn sót nếu có: [{id:0,vi: hoặc {"vi":
+    text = re.sub(r'^\[?\{?\s*["\']?id["\']?\s*:\s*\w+\s*,?\s*["\']?vi["\']?\s*:\s*["\']?', '', text, flags=re.IGNORECASE)
+    # Loại bỏ hậu tố JSON: }] hoặc "}
+    text = re.sub(r'["\']?\s*\}?\s*\]?$', '', text)
+
+    common_replacements = {
+        "凭": "dựa",
+        "大": "đại",
+        "狮": "sư",
+        "猫": "mao",
+        "熊": "hùng",
+    }
+    for ch, repl in common_replacements.items():
+        text = text.replace(ch, repl)
+    text = re.sub(r"[\u4e00-\u9fff]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _parse_translation_reply(raw_reply: str) -> Dict[Any, str]:
     """
-    Phân tích phản hồi dịch của Gemini thành map {id: text_vi}.
-    Thử parse cả mảng JSON trước; nếu phản hồi bị cắt giữa chừng (mảng JSON không đóng ngoặc hợp lệ),
-    cố gắng khôi phục từng object hợp lệ riêng lẻ thay vì loại bỏ toàn bộ lô chỉ vì 1-2 object cuối bị lỗi.
+    Phân tích phản hồi dịch của Gemini/GPT thành map {id: text_vi}.
+    Hỗ trợ linh hoạt:
+    1. Mảng JSON chuẩn: [{"id": 0, "vi": "..."}]
+    2. Object JSON đơn lẻ: {"id": 0, "vi": "..."} (khi video ngắn chỉ có 1 câu thoại)
+    3. JSON unquoted keys hoặc regex trích xuất nếu cú pháp bị thiếu ngoặc
     """
+    trans_map: Dict[Any, str] = {}
+    if not raw_reply:
+        return trans_map
+    raw_reply = raw_reply.strip()
+
+    # 1. Thử parse mảng JSON chuẩn [...]
     json_match = re.search(r"\[.*\]", raw_reply, re.DOTALL)
     if json_match:
         try:
             translated_list = json.loads(json_match.group(0))
-            return {item["id"]: item.get("vi", "") for item in translated_list if "id" in item}
+            if isinstance(translated_list, list):
+                for item in translated_list:
+                    if isinstance(item, dict) and "id" in item:
+                        trans_map[item["id"]] = _clean_vi_text(item.get("vi", ""))
+                if trans_map:
+                    return trans_map
         except (json.JSONDecodeError, TypeError, KeyError):
             pass
 
-    # Khôi phục từng object {"id": ..., "vi": ...} riêng lẻ từ phản hồi bị hỏng/cắt giữa chừng.
-    trans_map: Dict[Any, str] = {}
-    for obj_match in re.finditer(r"\{[^{}]*\}", raw_reply, re.DOTALL):
+    # 2. Thử parse Object JSON đơn lẻ {...} (trường hợp video chỉ có 1 câu thoại)
+    obj_match = re.search(r"\{[^{}]*\}", raw_reply, re.DOTALL)
+    if obj_match:
         try:
             item = json.loads(obj_match.group(0))
-            if isinstance(item, dict) and "id" in item:
-                trans_map[item["id"]] = item.get("vi", "")
+            if isinstance(item, dict) and "id" in item and "vi" in item:
+                return {item["id"]: _clean_vi_text(item.get("vi", ""))}
         except (json.JSONDecodeError, TypeError):
+            pass
+
+    # 3. Regex linh hoạt trích xuất từng cặp id và vi kể cả khi key không có dấu ngoặc kép
+    # Ví dụ: {id: 0, vi: "..."} hoặc [{id:0,vi:...}]
+    pattern = re.compile(r'["\']?id["\']?\s*:\s*["\']?(\d+)["\']?\s*,\s*["\']?vi["\']?\s*:\s*["\']?([^}\]\n\r]+)', re.IGNORECASE)
+    for m in pattern.finditer(raw_reply):
+        try:
+            idx = int(m.group(1))
+            val = _clean_vi_text(m.group(2))
+            if val:
+                trans_map[idx] = val
+        except Exception:
             continue
 
     if trans_map:
-        logger.info(f"[Translate] Khôi phục được {len(trans_map)} câu từ phản hồi JSON bị lỗi/cắt giữa chừng.")
+        logger.info(f"[Translate] Khôi phục thành công {len(trans_map)} câu thoại từ phản hồi AI.")
 
     return trans_map
 
@@ -910,17 +1276,9 @@ async def generate_tiktok_caption(
                 "caption": caption,
                 "hashtags": hashtags,
             }
-    except Exception as e:  # noqa: BLE001
-        logger.warning(f"[Gemini] Sinh caption thất bại, sử dụng fallback: {e}")
-
-    # Fallback mặc định nếu API lỗi
-    fallback_caption = "Khám phá video cực kỳ thú vị và hữu ích hôm nay! Bạn thấy thế nào, hãy để lại bình luận nhé ✨"
-    fallback_tags = ["#xuhuong", "#review", "#fyp", "#meohay", "#tiktokvietnam"] if include_hashtags else []
-    return {
-        "title": "Video nổi bật hôm nay",
-        "caption": fallback_caption,
-        "hashtags": fallback_tags,
-    }
+    except Exception as e:
+        logger.error(f"[Gemini] Sinh caption thất bại: {e}")
+        raise RuntimeError(f"Lỗi tạo Caption AI: {e}. Vui lòng kiểm tra lại API Key trong mục Cài Đặt!")
 
 
 AFFILIATE_STYLE_GUIDES = {
@@ -1749,33 +2107,10 @@ async def generate_affiliate_script(
                 "style_used": chosen_key,
             }
     except Exception as e:
-        logger.warning(f"Lỗi sinh kịch bản affiliate qua Gemini: {e}")
-
-    # Fallback kịch bản tự nhiên nếu API lỗi
-    fallback_segments = []
-    for i, plan in enumerate(target_segments_plan):
-        if i == 0:
-            txt = f"Ai mà ngờ cái {product_name} này lại tiện lợi đến thế!"
-        elif i == len(target_segments_plan) - 1:
-            txt = "Nhanh tay bấm vào giỏ hàng góc trái nhận ưu đãi hời nhé!"
-        else:
-            txt = f"Thiết kế thông minh, dùng bao nhiêu lấy bấy nhiêu cực kỳ sạch sẽ."
-        fallback_segments.append({
-            "order_index": i,
-            "scene_id": i,
-            "start": plan["start"],
-            "end": plan["end"],
-            "duration": round(plan["end"] - plan["start"], 2),
-            "text": txt,
-            "text_vi": txt,
-        })
-
-    return {
-        "title": f"Review {product_name}",
-        "caption": f"Món đồ siêu tiện lợi cho mọi người! Xem chi tiết ở giỏ hàng góc trái nhé ✨",
-        "hashtags": ["#xuhuong", "#tiktokshop", "#affiliate", "#review"],
-        "segments": fallback_segments,
-        "style_used": chosen_key,
-    }
+        logger.error(f"Lỗi sinh kịch bản affiliate qua Gemini: {e}")
+        raise RuntimeError(
+            f"Lỗi tạo kịch bản Affiliate AI: {e}. "
+            f"Vui lòng kiểm tra lại cấu hình API Key trong mục Cài Đặt!"
+        )
 
 

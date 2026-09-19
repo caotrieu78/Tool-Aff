@@ -7,6 +7,7 @@ export interface CustomAiStyle {
 }
 
 export interface LocalizeSettings {
+  recognitionMode: 'voice_only' | 'ocr_only' | 'ai_vision';
   aiStyle: string;
   customAiPrompt?: string;
   customAiStyles?: CustomAiStyle[];
@@ -41,34 +42,35 @@ export interface LocalizeSettings {
 }
 
 export const DEFAULT_LOCALIZE_SETTINGS: LocalizeSettings = {
-  aiStyle: 'bán hàng',
+  recognitionMode: 'voice_only',
+  aiStyle: 'chuan_goc',
   customAiPrompt: '',
   customAiStyles: [],
-  voiceId: 'vi-VN-HoaiMyNeural',
+  voiceId: 'vi-VN-NamMinhNeural',
   voiceSpeed: 1.0,
   syncMode: 'hybrid',
   aiVoiceVolume: 100,
   keepOriginalAudio: true,
-  bgmVolume: 15,
+  bgmVolume: 18,
   originalVoiceVolume: 0,
-  coverOldSub: true,
+  coverOldSub: false,
   blurAmount: 25,
   blurMethod: 'blur',
   showSubtitles: true,
-  subPositionMode: 'by_original',
+  subPositionMode: 'by_height',
   subPlacement: 'overlay',
   autoFitSubSize: true,
-  subPositionPercent: 71,
+  subPositionPercent: 25,
   subFont: 'Oswald',
-  subFontSize: 29,
-  subTextColor: '#FFD700',
+  subFontSize: 36,
+  subTextColor: '#FFFFFF',
   subBgColor: '#000000',
-  subBgOpacity: 82,
+  subBgOpacity: 65,
   subStyleType: 'box',
   subBold: true,
   subItalic: false,
   subMarginV: 25,
-  previewSubText: 'Ốp lưng gấu Miffy siêu xinh xắn!',
+  previewSubText: 'Nếu tôi thắng thì thả anh em tôi ra.',
   phoneMockup: 'iphone16',
   showSafeZone: false,
   dictionaryEntries: [
@@ -78,6 +80,12 @@ export const DEFAULT_LOCALIZE_SETTINGS: LocalizeSettings = {
 };
 
 export const AI_STYLES = [
+  {
+    id: 'chuan_goc',
+    name: 'Bám sát lời thoại gốc (Chuẩn 1:1)',
+    desc: 'Dịch sát 100% từng câu thoại nhân vật như GenSubAI/CapCut, giữ nguyên cảm xúc, không chế lời',
+    color: 'text-emerald-400',
+  },
   {
     id: 'bán hàng',
     name: 'Bán hàng / Chốt đơn',

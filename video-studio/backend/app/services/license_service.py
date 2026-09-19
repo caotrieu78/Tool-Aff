@@ -213,7 +213,7 @@ class LicenseService:
             if resp.status_code != 200:
                 return False, {
                     "success": False,
-                    "server_responded": True,
+                    "server_responded": False,
                     "message": f"Không thể kết nối Google Sheets (HTTP {resp.status_code})",
                 }
 

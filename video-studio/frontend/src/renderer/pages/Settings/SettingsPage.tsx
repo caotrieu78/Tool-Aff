@@ -41,6 +41,7 @@ interface GeminiKeyItem {
   id: number;
   label: string;
   provider?: 'google' | 'kie' | string;
+  preferred_model?: string;
   is_default?: boolean;
   masked_key: string;
   daily_quota_used: number;
@@ -96,7 +97,9 @@ export default function SettingsPage() {
   const [loadingKeys, setLoadingKeys] = useState(false);
   const [newKey, setNewKey] = useState('');
   const [newLabel, setNewLabel] = useState('');
-    const [showKeyText, setShowKeyText] = useState(false);
+  const [newModel, setNewModel] = useState('auto');
+  const [updatingModelKeyId, setUpdatingModelKeyId] = useState<number | null>(null);
+  const [showKeyText, setShowKeyText] = useState(false);
   const [addingKey, setAddingKey] = useState(false);
   const [testingKeyId, setTestingKeyId] = useState<number | null>(null);
   const [keyAlert, setKeyAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -450,8 +453,9 @@ export default function SettingsPage() {
         api_key: newKey.trim(),
         label: newLabel.trim() || defaultLabel,
         provider: 'auto',
+        preferred_model: newModel,
       });
-      const provName = res.key?.provider === 'kie' ? 'Gemini Flash (Server VIP)' : 'Google AI Studio';
+      const provName = res.key?.provider === 'kie' ? `Kie.ai (${res.key?.preferred_model || newModel})` : 'Google AI Studio';
       setKeyAlert({
         type: 'success',
         message: `Đã xác thực key thành công qua ${provName} (Độ trễ phản hồi: ${res.latency_ms}ms)`,
@@ -466,6 +470,28 @@ export default function SettingsPage() {
       });
     } finally {
       setAddingKey(false);
+    }
+  };
+
+  // Handle Update Key Model
+  const handleUpdateKeyModel = async (id: number, model: string) => {
+    try {
+      setUpdatingModelKeyId(id);
+      await settingsApi.updateKeyModel(id, model);
+      setKeys((prev) =>
+        prev.map((k) => (k.id === id ? { ...k, preferred_model: model } : k))
+      );
+      setKeyAlert({
+        type: 'success',
+        message: `Đã đổi cấu hình mô hình cho Key #${id} sang "${model}"`,
+      });
+    } catch (err: any) {
+      setKeyAlert({
+        type: 'error',
+        message: err.message || 'Lỗi khi cập nhật mô hình cho key',
+      });
+    } finally {
+      setUpdatingModelKeyId(null);
     }
   };
 
@@ -834,7 +860,7 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleAddKey} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="md:col-span-1">
                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
                       Tên gợi nhớ
@@ -846,6 +872,25 @@ export default function SettingsPage() {
                       placeholder="VD: Key 1, Studio..."
                       className="w-full bg-[#12151e] border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
                     />
+                  </div>
+
+                  <div className="md:col-span-1">
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1">
+                      <Cpu size={12} className="text-indigo-400" />
+                      Mô hình AI
+                    </label>
+                    <select
+                      value={newModel}
+                      onChange={(e) => setNewModel(e.target.value)}
+                      className="w-full bg-[#12151e] border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-indigo-500 transition"
+                    >
+                      <option value="auto">Tự động (Mặc định)</option>
+                      <option value="gpt-5-2">GPT-5.2 (Kie.ai)</option>
+                      <option value="gemini-3-8-flash">Gemini 3.8 Flash (Kie.ai VIP)</option>
+                      <option value="gemini-3-5-flash">Gemini 3.5 Flash (Kie.ai VIP)</option>
+                      <option value="gpt-5-6-sol">GPT-5.6 Sol (Codex)</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash (Google AI)</option>
+                    </select>
                   </div>
 
                   <div className="md:col-span-2">
@@ -872,11 +917,15 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-1">
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-amber-400 shrink-0" />
+                    <span>Mẹo: Nếu Kie.ai Gemini đang bảo trì, chọn <strong>GPT-5.2 (Kie.ai)</strong> để dịch mượt không lo lỗi 500.</span>
+                  </span>
                   <button
                     type="submit"
                     disabled={addingKey || !newKey.trim()}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-600/30 transition"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-600/30 transition shrink-0"
                   >
                     {addingKey ? (
                       <>
@@ -948,53 +997,82 @@ export default function SettingsPage() {
                         key={k.id}
                         className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#191d29] transition"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-indigo-400 shrink-0">
-                            <Key size={18} />
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <div className="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-300 shrink-0">
+                            <Key size={16} />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
+                            {/* Dòng 1: Tên gợi nhớ + Masked key + Badges đồng bộ, trang nhã */}
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-slate-100 truncate">
+                              <span className="text-sm font-semibold text-white truncate">
                                 {k.label}
                               </span>
-                              {k.provider === 'kie' ? (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                                  <Zap size={9} className="shrink-0" />
-                                  <span>Server VIP</span>
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                                  Google AI
-                                </span>
-                              )}
+                              <span className="text-xs text-slate-400 font-mono">
+                                ({k.masked_key})
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700/60">
+                                {k.provider === 'kie' ? 'Kie.ai' : 'Google AI'}
+                              </span>
                               {k.is_default && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm">
-                                  <Star size={10} className="fill-amber-400 text-amber-400" />
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25 flex items-center gap-1">
+                                  <Star size={9} className="fill-amber-400 text-amber-400" />
                                   <span>Mặc định</span>
                                 </span>
                               )}
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium ${
                                   k.status === 'active'
-                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                     : k.status === 'exhausted'
-                                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                    : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                                 }`}
                               >
-                                {k.status === 'active'
-                                  ? 'Sẵn sàng'
-                                  : k.status === 'exhausted'
-                                  ? 'Hết quota'
-                                  : 'Lỗi key'}
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    k.status === 'active'
+                                      ? 'bg-emerald-400'
+                                      : k.status === 'exhausted'
+                                      ? 'bg-amber-400'
+                                      : 'bg-rose-400'
+                                  }`}
+                                />
+                                <span>
+                                  {k.status === 'active'
+                                    ? 'Sẵn sàng'
+                                    : k.status === 'exhausted'
+                                    ? 'Hết quota'
+                                    : 'Lỗi key'}
+                                </span>
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-400 font-mono mt-1">
-                              <span>{k.masked_key}</span>
+
+                            {/* Dòng 2: Cấu hình Mô hình AI + Thời gian sử dụng */}
+                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 text-[11px]">Mô hình:</span>
+                                <select
+                                  value={k.preferred_model || 'auto'}
+                                  disabled={updatingModelKeyId === k.id}
+                                  onChange={(e) => handleUpdateKeyModel(k.id, e.target.value)}
+                                  className="bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700/80 rounded-md px-2 py-0.5 text-xs font-medium focus:outline-none focus:border-slate-500 transition cursor-pointer disabled:opacity-50"
+                                >
+                                  <option value="auto" className="bg-[#161922] text-slate-200">Tự động (Mặc định)</option>
+                                  <option value="gpt-5-2" className="bg-[#161922] text-slate-200">GPT-5.2 (Kie.ai)</option>
+                                  <option value="gemini-3-8-flash" className="bg-[#161922] text-slate-200">Gemini 3.8 Flash (Kie.ai VIP)</option>
+                                  <option value="gemini-3-5-flash" className="bg-[#161922] text-slate-200">Gemini 3.5 Flash (Kie.ai VIP)</option>
+                                  <option value="gpt-5-6-sol" className="bg-[#161922] text-slate-200">GPT-5.6 Sol (Codex)</option>
+                                  <option value="gemini-2.5-flash" className="bg-[#161922] text-slate-200">Gemini 2.5 Flash (Google AI)</option>
+                                </select>
+                                {updatingModelKeyId === k.id && (
+                                  <RefreshCw size={11} className="animate-spin text-slate-400" />
+                                )}
+                              </div>
+
                               {k.last_used_at && (
                                 <>
                                   <span className="text-slate-600">•</span>
-                                  <span className="text-slate-500 flex items-center gap-1 font-sans">
+                                  <span className="text-slate-500 flex items-center gap-1 text-[11px] font-sans">
                                     <Clock size={11} />
                                     Dùng: {new Date(k.last_used_at).toLocaleTimeString('vi-VN')}
                                   </span>
@@ -1004,47 +1082,42 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
-                        {/* KHỐI HIỂN THỊ CREDIT PHÓNG TO, BẤM VÀO ĐỂ ĐỒNG BỘ */}
+                        {/* KHỐI HIỂN THỊ CREDIT GỌN GÀNG, ĐỒNG BỘ */}
                         {k.provider === 'kie' && (() => {
                           const cr = kieCredits[k.id];
                           const isSyncing = syncingCreditId === k.id || cr === 'loading';
                           return (
                             <div
                               onClick={() => !isSyncing && handleSyncKieCredit(k.id)}
-                              className={`px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-950/70 via-[#1a142e] to-indigo-950/70 border border-purple-500/50 shadow-md shadow-purple-950/40 flex items-center gap-3 transition group shrink-0 ${
-                                isSyncing
-                                  ? 'opacity-80 cursor-wait'
-                                  : 'cursor-pointer hover:border-purple-400 hover:shadow-purple-900/40 active:scale-95'
+                              className={`px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 flex items-center gap-2.5 transition shrink-0 ${
+                                isSyncing ? 'opacity-80 cursor-wait' : 'cursor-pointer hover:border-slate-600'
                               }`}
-                              title="Bấm vào thẻ này để đồng bộ lại số dư Credits"
+                              title="Bấm vào để đồng bộ lại số dư Credits"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400 group-hover:scale-105 transition shrink-0">
+                              <div className="w-7 h-7 rounded-lg bg-slate-700/50 flex items-center justify-center text-slate-300 shrink-0">
                                 {isSyncing ? (
-                                  <RefreshCw size={16} className="animate-spin text-purple-300" />
+                                  <RefreshCw size={13} className="animate-spin text-slate-300" />
                                 ) : (
-                                  <Coins size={18} />
+                                  <Coins size={14} />
                                 )}
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
-                                  <span>Số Dư</span>
-                                  <span className="text-[9px] text-purple-400/70 font-normal">
-                                    (sync)
-                                  </span>
+                                <span className="text-[10px] text-slate-400 font-medium leading-none mb-0.5">
+                                  Số dư credit
                                 </span>
-                                <div className="flex items-baseline gap-1.5">
+                                <div className="flex items-baseline gap-1">
                                   {isSyncing ? (
-                                    <span className="text-xs text-purple-300 animate-pulse flex items-center gap-1 font-semibold">
+                                    <span className="text-xs text-slate-400 animate-pulse font-medium">
                                       Đang đồng bộ...
                                     </span>
                                   ) : cr === 'error' ? (
-                                    <span className="text-xs text-rose-400 font-bold">⚠ Lỗi credit</span>
+                                    <span className="text-xs text-rose-400 font-medium">Lỗi kết nối</span>
                                   ) : typeof cr === 'number' ? (
                                     <>
-                                      <span className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight leading-none">
+                                      <span className="text-sm font-bold font-mono text-white tracking-tight">
                                         {cr.toLocaleString()}
                                       </span>
-                                      <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
+                                      <span className="text-[10px] text-slate-400 font-medium">
                                         cr
                                       </span>
                                     </>

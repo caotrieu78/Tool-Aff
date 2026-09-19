@@ -150,6 +150,42 @@ export default function ModuleLocalizePage() {
     [presets, videoPresetMap]
   );
 
+  // Helper: Xác định badge & nhãn phương thức nhận diện dựa trên Cấu hình Preset đang chọn
+  const getRecogBadgeInfo = useCallback((preset: LocalizePreset | null | undefined) => {
+    const mode = preset?.settings?.recognition_mode || preset?.settings?.recognitionMode || 'voice_only';
+    if (mode === 'ai_vision') {
+      return {
+        mode: 'ai_vision',
+        label: 'AI Thị Giác',
+        shortLabel: 'AI Vision',
+        pillClass: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
+        badgeClass: 'bg-amber-500/90 text-white border-amber-400/40',
+        icon: <Sparkles size={10} className="text-amber-400 shrink-0" />,
+        thumbIcon: <Sparkles size={8} className="shrink-0" />,
+      };
+    }
+    if (mode === 'ocr_only') {
+      return {
+        mode: 'ocr_only',
+        label: 'Quét OCR',
+        shortLabel: 'Quét OCR',
+        pillClass: 'bg-purple-500/15 border-purple-500/30 text-purple-300',
+        badgeClass: 'bg-purple-500/90 text-white border-purple-400/40',
+        icon: <Subtitles size={10} className="text-purple-400 shrink-0" />,
+        thumbIcon: <Subtitles size={8} className="shrink-0" />,
+      };
+    }
+    return {
+      mode: 'voice_only',
+      label: 'Whisper STT',
+      shortLabel: 'Whisper STT',
+      pillClass: 'bg-sky-500/15 border-sky-500/30 text-sky-300',
+      badgeClass: 'bg-sky-500/90 text-white border-sky-400/40',
+      icon: <Mic size={10} className="text-sky-400 shrink-0" />,
+      thumbIcon: <Mic size={8} className="shrink-0" />,
+    };
+  }, []);
+
   // Video Library & Multi-Selection
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null); // Active video for preview
@@ -377,6 +413,7 @@ export default function ModuleLocalizePage() {
     setSelectedVideoIds(new Set());
   };
 
+
   // Start Batch Localize Pipeline using Active Preset Settings
   const handleStartBatchJob = async () => {
     const idsToProcess = Array.from(selectedVideoIds);
@@ -397,7 +434,8 @@ export default function ModuleLocalizePage() {
         if (e.original && e.replacement) dictMap[e.original] = e.replacement;
       });
       return {
-        ai_style: st.ai_style || st.aiStyle || 'bán hàng',
+        recognition_mode: st.recognition_mode || st.recognitionMode || 'voice_only',
+        ai_style: st.ai_style || st.aiStyle || 'chuan_goc',
         ai_style_prompt: st.ai_style_prompt || st.custom_ai_prompt || st.customAiPrompt || '',
         voice_id: st.voice_id || st.voiceId || 'vi-VN-HoaiMyNeural',
         voice_speed: st.voice_speed !== undefined ? st.voice_speed : (st.voiceSpeed !== undefined ? st.voiceSpeed : 1.0),
@@ -431,6 +469,7 @@ export default function ModuleLocalizePage() {
     const initialQueue: BatchQueueItem[] = idsToProcess.map((id) => {
       const v = videos.find((item) => item.id === id);
       const assignedPreset = getPresetForVideo(id);
+      const presetRecog = assignedPreset?.settings?.recognition_mode || assignedPreset?.settings?.recognitionMode;
       return {
         videoId: id,
         title: v?.title || `Video #${id}`,
@@ -440,7 +479,7 @@ export default function ModuleLocalizePage() {
         status: 'waiting',
         percent: 0,
         message: 'Đang xếp hàng chờ xử lý...',
-        recognitionType: v?.recognition_type || 'voice_only',
+        recognitionType: presetRecog || v?.recognition_type || 'voice_only',
       };
     });
 
@@ -1390,13 +1429,13 @@ export default function ModuleLocalizePage() {
                         </div>
                       </div>
 
-                      {/* Cột 2: Ảnh Preview Thumbnail sắc nét */}
-                      <div className="relative w-24 sm:w-32 aspect-[16/9] rounded-xl overflow-hidden bg-black border border-slate-800/90 shrink-0 group/thumb">
+                      {/* Cột 2: Thumbnail Video */}
+                      <div className="w-20 sm:w-28 aspect-video rounded-xl bg-slate-900 border border-slate-700/60 overflow-hidden relative shrink-0">
                         {video.thumbnail_url ? (
                           <img
                             src={libraryApi.getMediaUrl(video.thumbnail_url)}
                             alt={video.title}
-                            className="w-full h-full object-contain bg-black group-hover/thumb:scale-105 transition duration-200"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-slate-900">
@@ -1409,18 +1448,18 @@ export default function ModuleLocalizePage() {
                           {formatDuration(video.duration)}
                         </span>
 
-                        {/* Tag nhận diện AI/STT */}
-                        <span className="absolute top-1 left-1">
-                          {video.recognition_type === 'ai_vision' ? (
-                            <span className="px-1.5 py-0.2 rounded bg-amber-500/85 backdrop-blur text-white text-[9px] font-bold flex items-center gap-0.5 shadow-sm">
-                              <Sparkles size={8} /> AI
-                            </span>
-                          ) : (
-                            <span className="px-1.5 py-0.2 rounded bg-sky-500/85 backdrop-blur text-white text-[9px] font-bold flex items-center gap-0.5 shadow-sm">
-                              <Mic size={8} /> STT
-                            </span>
-                          )}
-                        </span>
+                        {/* Badge Chế độ nhận diện theo Cấu hình Preset đang chọn */}
+                        {(() => {
+                          const assignedPreset = getPresetForVideo(video.id);
+                          const recogInfo = getRecogBadgeInfo(assignedPreset);
+                          return (
+                            <div className="absolute bottom-1 left-1 z-10 pointer-events-none">
+                              <span className={`px-1.5 py-0.5 rounded ${recogInfo.badgeClass} text-[9px] font-bold flex items-center gap-0.5 shadow-sm border`}>
+                                {recogInfo.thumbIcon} {recogInfo.shortLabel}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         {/* Đang xem badge */}
                         {isPreviewActive && (
@@ -1454,23 +1493,30 @@ export default function ModuleLocalizePage() {
                               Gốc
                             </span>
                           )}
+
                           <span className="text-slate-600 shrink-0">•</span>
                           <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap shrink-0">STT: {idx + 1}</span>
                         </div>
                       </div>
 
                       {/* Cột 4: Chọn Cấu Hình (Chỉ hiển thị khi video được tick chọn) */}
-                      <div className="w-44 sm:w-56 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="w-44 sm:w-60 shrink-0" onClick={(e) => e.stopPropagation()}>
                         {isChecked ? (() => {
-                          const currentPresetId = videoPresetMap[video.id] || presets.find((p) => p.is_default)?.id || presets[0]?.id;
-                          const currentPreset = presets.find((p) => p.id === currentPresetId);
+                          const currentPreset = getPresetForVideo(video.id);
+                          const currentPresetId = currentPreset?.id;
+                          const recogInfo = getRecogBadgeInfo(currentPreset);
                           const dropdownId = `preset-dropdown-list-${video.id}`;
 
                           return (
                             <div className="space-y-1 animate-in fade-in duration-150 relative">
-                              <div className="flex items-center gap-1 text-[10px] font-semibold text-indigo-300 whitespace-nowrap">
-                                <SlidersHorizontal size={11} className="text-indigo-400 shrink-0" />
-                                <span>Cấu hình:</span>
+                              <div className="flex items-center justify-between text-[10px] font-semibold text-indigo-300 whitespace-nowrap">
+                                <div className="flex items-center gap-1">
+                                  <SlidersHorizontal size={11} className="text-indigo-400 shrink-0" />
+                                  <span>Cấu hình:</span>
+                                </div>
+                                <span className={`text-[9.5px] font-bold flex items-center gap-0.5 ${recogInfo.pillClass.split(' ')[2]}`}>
+                                  {recogInfo.icon} {recogInfo.shortLabel}
+                                </span>
                               </div>
                               {/* Custom dropdown trigger */}
                               <button
@@ -1492,10 +1538,11 @@ export default function ModuleLocalizePage() {
                               <div
                                 id={dropdownId}
                                 className="hidden absolute z-50 top-full mt-1 left-0 right-0 bg-[#0e1018] border border-indigo-500/40 rounded-xl shadow-2xl shadow-black/60 overflow-hidden max-h-56 overflow-y-auto"
-                                style={{ minWidth: '220px' }}
+                                style={{ minWidth: '240px' }}
                               >
                                 {presets.map((p) => {
                                   const isActive = p.id === currentPresetId;
+                                  const pInfo = getRecogBadgeInfo(p);
                                   return (
                                     <button
                                       key={p.id}
@@ -1511,9 +1558,12 @@ export default function ModuleLocalizePage() {
                                           : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'
                                       }`}
                                     >
-                                      <div className="flex items-center gap-1.5 font-medium text-xs truncate">
+                                      <div className="flex items-center gap-1.5 font-medium text-xs truncate mr-2">
                                         {p.is_default && <span className="text-amber-400 text-[10px]">⭐</span>}
                                         <span className="truncate">{p.name}</span>
+                                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border shrink-0 ${pInfo.pillClass}`}>
+                                          {pInfo.shortLabel}
+                                        </span>
                                       </div>
                                       {isActive && (
                                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 ml-2" />
@@ -1599,6 +1649,19 @@ export default function ModuleLocalizePage() {
                           </div>
                         </div>
 
+                        {/* Badge Chế độ nhận diện theo Cấu hình Preset đang chọn */}
+                        {(() => {
+                          const assignedPreset = getPresetForVideo(video.id);
+                          const recogInfo = getRecogBadgeInfo(assignedPreset);
+                          return (
+                            <div className="absolute top-2 left-8 z-10 pointer-events-none">
+                              <span className={`px-1.5 py-0.5 rounded ${recogInfo.badgeClass} text-[9px] font-bold flex items-center gap-0.5 shadow border`}>
+                                {recogInfo.thumbIcon} {recogInfo.shortLabel}
+                              </span>
+                            </div>
+                          );
+                        })()}
+
                         {/* Top Right: Eye preview active badge */}
                         {isPreviewActive && (
                           <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
@@ -1606,21 +1669,11 @@ export default function ModuleLocalizePage() {
                           </span>
                         )}
 
-                        {/* Bottom Bar inside thumbnail: Duration & Mode Tag */}
-                        <div className="absolute bottom-1.5 inset-x-1.5 flex items-center justify-between text-[10px]">
+                        {/* Bottom Bar inside thumbnail: Duration */}
+                        <div className="absolute bottom-1.5 right-1.5 text-[10px]">
                           <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur text-slate-200 font-mono">
                             {formatDuration(video.duration)}
                           </span>
-
-                          {video.recognition_type === 'ai_vision' ? (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500/80 backdrop-blur text-white font-bold flex items-center gap-0.5">
-                              <Sparkles size={9} /> AI
-                            </span>
-                          ) : (
-                            <span className="px-1.5 py-0.5 rounded bg-sky-500/80 backdrop-blur text-white font-bold flex items-center gap-0.5">
-                              <Mic size={9} /> STT
-                            </span>
-                          )}
                         </div>
                       </div>
 
@@ -1629,54 +1682,68 @@ export default function ModuleLocalizePage() {
                         <p className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-indigo-300 transition">
                           {video.title}
                         </p>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400">
-                          <span className="truncate">
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 gap-1 flex-wrap">
+                          <span className="truncate max-w-[120px]">
                             {channels.find((c) => c.id === video.channel_id)?.name || 'Kênh mặc định'}
                           </span>
-                          {video.has_localized ? (
-                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
-                              <Mic size={10} className="text-emerald-400" />
-                              <span>Đã Lồng Tiếng</span>
-                            </span>
-                          ) : video.status === 'done' ? (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                              Đã Dịch (Chưa lồng tiếng)
-                            </span>
-                          ) : (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
-                              Gốc
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {video.has_localized ? (
+                              <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                                <Mic size={10} className="text-emerald-400" />
+                                <span>Đã Lồng Tiếng</span>
+                              </span>
+                            ) : video.status === 'done' ? (
+                              <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                Đã Dịch
+                              </span>
+                            ) : (
+                              <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
+                                Gốc
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       {/* CHỌN CẤU HÌNH RIÊNG BIỆT: CHỈ HIỂN THỊ KHI VIDEO ĐƯỢC TICK CHỌN */}
-                      {isChecked && (
-                        <div
-                          className="pt-2 border-t border-indigo-500/30 flex items-center justify-between gap-1.5 animate-in fade-in duration-150"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="text-[10px] text-indigo-300 font-semibold flex items-center gap-1 shrink-0">
-                            <SlidersHorizontal size={10} className="text-indigo-400" />
-                            <span>Cấu hình:</span>
-                          </span>
-                          <select
-                            value={videoPresetMap[video.id] || presets.find((p) => p.is_default)?.id || presets[0]?.id || ''}
-                            onChange={(e) => {
-                              const newPId = Number(e.target.value);
-                              setVideoPresetMap((prev) => ({ ...prev, [video.id]: newPId }));
-                            }}
-                            className="flex-1 min-w-0 px-2 py-1 text-[10.5px] bg-[#0b0d13] hover:bg-[#141620] border border-indigo-500/50 rounded-lg text-indigo-200 font-bold focus:outline-none focus:border-indigo-500 transition cursor-pointer truncate shadow-inner"
-                            title="Chọn cấu hình riêng biệt cho video này"
+                      {isChecked && (() => {
+                        const assignedPreset = getPresetForVideo(video.id);
+                        const recogInfo = getRecogBadgeInfo(assignedPreset);
+                        return (
+                          <div
+                            className="pt-2 border-t border-indigo-500/30 flex items-center justify-between gap-1.5 animate-in fade-in duration-150"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            {presets.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} {p.is_default ? '⭐' : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
+                            <span className="text-[10px] text-indigo-300 font-semibold flex items-center gap-1 shrink-0">
+                              <SlidersHorizontal size={10} className="text-indigo-400" />
+                              <span>Cấu hình:</span>
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border flex items-center gap-0.5 shrink-0 ${recogInfo.pillClass}`}>
+                                {recogInfo.icon} {recogInfo.shortLabel}
+                              </span>
+                              <select
+                                value={videoPresetMap[video.id] || presets.find((p) => p.is_default)?.id || presets[0]?.id || ''}
+                                onChange={(e) => {
+                                  const newPId = Number(e.target.value);
+                                  setVideoPresetMap((prev) => ({ ...prev, [video.id]: newPId }));
+                                }}
+                                className="flex-1 max-w-[150px] min-w-0 px-2 py-1 text-[10.5px] bg-[#0b0d13] hover:bg-[#141620] border border-indigo-500/50 rounded-lg text-indigo-200 font-bold focus:outline-none focus:border-indigo-500 transition cursor-pointer truncate shadow-inner"
+                                title="Chọn cấu hình riêng biệt cho video này"
+                              >
+                                {presets.map((p) => {
+                                  const pInfo = getRecogBadgeInfo(p);
+                                  return (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} {p.is_default ? '⭐' : ''} [{pInfo.shortLabel}]
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

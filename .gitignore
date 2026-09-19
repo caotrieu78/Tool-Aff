@@ -50,3 +50,7 @@ Thumbs.db
 ~$*
 *.tmp
 *.bak
+*.mp4
+*.wav
+*.mkv
+video-studio/backend/storage/gensub_*

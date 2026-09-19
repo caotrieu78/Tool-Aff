@@ -370,12 +370,13 @@ def get_available_voices() -> list[dict[str, Any]]:
 
 
 def format_rate_string(speed: float) -> str:
-    """Chuyển đổi speed float (0.8 - 1.5) sang định dạng Edge-TTS rate string."""
-    diff = int((speed - 1.0) * 100)
+    """Chuyển đổi speed float sang định dạng Edge-TTS rate string, tối ưu tốc độ đọc nhanh gọn, sinh động cho video ngắn."""
+    # Khi speed = 1.0 (mặc định), tự động tăng lên +15% để phát âm tiếng Việt hoạt bát, không bị chậm rề rà
+    eff_speed = 1.15 if abs(speed - 1.0) < 0.03 else speed
+    diff = int((eff_speed - 1.0) * 100)
     if diff >= 0:
         return f"+{diff}%"
-    else:
-        return f"{diff}%"
+    return f"{diff}%"
 
 
 async def text_to_speech_file(
@@ -387,6 +388,9 @@ async def text_to_speech_file(
     """Tạo file âm thanh MP3 từ văn bản tiếng Việt qua Gemini 2.5 Pro hoặc Edge-TTS."""
     if not text.strip():
         raise ValueError("Văn bản chuyển đổi giọng nói không được để trống")
+
+    # Mặc định tốc độ đọc 1.15x để giọng đọc tươi tắn, khớp nhịp video ngắn
+    eff_speed = 1.15 if abs(speed - 1.0) < 0.03 else speed
 
     output_dir = os.path.dirname(output_path)
     if output_dir:
@@ -411,7 +415,7 @@ async def text_to_speech_file(
                 text=text,
                 output_path=output_path,
                 voice=voice,
-                speed=speed,
+                speed=eff_speed,
             )
         except Exception as gemini_err:
             logger.warning(f"[Gemini TTS] Lỗi ({gemini_err}), chuyển sang Edge-TTS dự phòng")
@@ -421,7 +425,7 @@ async def text_to_speech_file(
                 "vindemiatrix", "zephyr"
             ))
             fallback_voice = "vi-VN-HoaiMyNeural" if is_female else "vi-VN-NamMinhNeural"
-            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=speed)
+            return await text_to_speech_file(text=text, output_path=output_path, voice=fallback_voice, speed=eff_speed)
 
     # 0.5. Nếu là giọng preset của VieNeu-TTS (offline, mã nguồn mở, hỗ trợ emotion cues)
     if voice.startswith("vieneu_"):
@@ -435,7 +439,7 @@ async def text_to_speech_file(
                 text=text,
                 output_path=output_path,
                 voice=raw_voice_name,
-                speed=speed,
+                speed=eff_speed,
             )
         except Exception as vieneu_err:
             logger.warning(f"[VieNeu-TTS] Lỗi ({vieneu_err}), chuyển sang Edge-TTS dự phòng")
@@ -530,35 +534,40 @@ async def synthesize_timeline_voiceover(
             tmp_path = os.path.join(tmp_dir, f"seg_{i}.mp3")
             seg_temp_files.append((orig_idx, seg, tmp_path, txt))
 
-            # Tổng hợp TTS tuần tự có retry và fallback đảm bảo 100% không mất tiếng
-            success = False
-            for attempt in range(2):
-                try:
-                    await text_to_speech_file(
-                        text=txt,
-                        output_path=tmp_path,
-                        voice=voice,
-                        speed=speed,
-                    )
-                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 500:
-                        success = True
-                        break
-                except Exception as err:
-                    logger.warning(f"Lỗi TTS segment {orig_idx} (lần {attempt+1}): {err}")
-                    await asyncio.sleep(0.3)
+        # Tổng hợp TTS song song (tối đa 4 câu đồng thời) có retry và fallback đảm bảo tốc độ và không mất tiếng
+        sem = asyncio.Semaphore(4)
 
-            if not success:
-                # Dự phòng bằng Edge-TTS NamMinh/HoaiMy
-                fb_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
-                try:
-                    await text_to_speech_file(
-                        text=txt,
-                        output_path=tmp_path,
-                        voice=fb_voice,
-                        speed=speed,
-                    )
-                except Exception as fb_err:
-                    logger.error(f"Fallback TTS cũng lỗi cho segment {orig_idx}: {fb_err}")
+        async def _synth_item(orig_idx: int, seg: dict[str, Any], tmp_path: str, txt: str):
+            async with sem:
+                success = False
+                for attempt in range(2):
+                    try:
+                        await text_to_speech_file(
+                            text=txt,
+                            output_path=tmp_path,
+                            voice=voice,
+                            speed=speed,
+                        )
+                        if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 500:
+                            success = True
+                            break
+                    except Exception as err:
+                        logger.warning(f"Lỗi TTS segment {orig_idx} (lần {attempt+1}): {err}")
+                        await asyncio.sleep(0.2)
+
+                if not success:
+                    fb_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
+                    try:
+                        await text_to_speech_file(
+                            text=txt,
+                            output_path=tmp_path,
+                            voice=fb_voice,
+                            speed=speed,
+                        )
+                    except Exception as fb_err:
+                        logger.error(f"Fallback TTS cũng lỗi cho segment {orig_idx}: {fb_err}")
+
+        await asyncio.gather(*[_synth_item(orig_idx, seg, tmp_path, txt) for orig_idx, seg, tmp_path, txt in seg_temp_files])
 
         # Ráp timeline bằng pydub trong background thread
         def _assemble() -> str:
@@ -608,60 +617,58 @@ async def synthesize_timeline_voiceover(
                     else:
                         available_slot_ms = orig_dur_ms + 1500
 
-                # 1. Kiểm tra độ lệch thời lượng giọng đọc so với khung hình start/end gốc của câu thoại.
-                # Ngưỡng co giãn tự nhiên cho phép: ±15%. Vượt ngưỡng này, ffmpeg atempo sẽ làm giọng
-                # nghe méo/gấp gáp bất thường -> chỉ CẢNH BÁO để sửa lại kịch bản, không ép giãn vô hạn.
+                # 1. Kiểm tra độ lệch thời lượng giọng đọc so với khung hình start/end gốc của câu thoại
                 if orig_dur_ms > 300:
                     timing_deviation = (clip_len_ms / orig_dur_ms) - 1.0
                     if abs(timing_deviation) > 0.15:
                         seg["timing_warning"] = True
                         seg["timing_deviation_pct"] = round(timing_deviation * 100, 1)
-                        logger.warning(
-                            f"[TTS Timing] Câu #{orig_idx} lệch {timing_deviation * 100:+.1f}% so với khung hình "
-                            f"gốc (giọng đọc: {clip_len_ms}ms / khung gốc: {orig_dur_ms}ms) — vượt ngưỡng ±15%. "
-                            f"Khuyến nghị viết lại/rút gọn câu thoại thay vì ép giãn giọng: "
-                            f"'{(seg.get('text_vi') or seg.get('text') or '')[:100]}'"
-                        )
 
-                # 2. Điều chỉnh tốc độ từng câu thoại nếu câu tiếng Việt dài hơn khung hình cho phép.
-                # Ưu tiên giữ độ co giãn trong ngưỡng tự nhiên ±15% (tối đa 1.15x); chỉ ép giãn thêm
-                # (tối đa 1.35x) khi thực sự cần để tránh chồng tiếng lên câu kế tiếp trên timeline.
+                # 2. Điều chỉnh tốc độ (atempo) 2 chiều để khớp chuẩn xác với chuyển động nhép miệng:
+                # - Nếu audio dài hơn khung thời gian cho phép: tăng tốc mạnh (tối đa 1.7x) để không đè câu sau
+                # - Nếu audio dài hơn khung hình nhân vật nói: tăng tốc nhẹ (tối đa 1.4x) để dứt cùng lúc với miệng khép
+                # - Nếu audio ngắn hơn khung hình nhân vật nói (> 10%): giảm tốc nhẹ (xuống 0.80x) để kéo dài tiếng nói
+                #   tự nhiên, tránh tình trạng hết tiếng mà nhân vật vẫn tiếp tục mấp máy môi trên màn hình.
+                # NOTE: ffmpeg atempo chỉ hỗ trợ [0.5, 2.0] mỗi bộ lọc, cần chain nếu > 2.0x
+                needed_speed = 1.0
                 if clip_len_ms > available_slot_ms:
-                    needed_speed_for_slot = clip_len_ms / max(300, available_slot_ms)
-                    natural_cap = 1.15
-                    if needed_speed_for_slot > natural_cap:
-                        needed_speed = min(1.35, needed_speed_for_slot)
-                        logger.warning(
-                            f"[TTS Timing] Câu #{orig_idx} phải ép giãn giọng tới {needed_speed:.2f}x "
-                            f"(vượt ngưỡng tự nhiên {natural_cap}x) để tránh chồng tiếng với câu kế tiếp — "
-                            f"nên rút ngắn kịch bản cho câu này."
-                        )
-                    else:
-                        needed_speed = max(1.0, needed_speed_for_slot)
-                    if needed_speed > 1.05:
-                        speed_tmp = fpath + ".sp.mp3"
-                        cmd_speed = [
-                            "ffmpeg", "-y", "-i", fpath,
-                            "-filter:a", f"atempo={needed_speed:.3f}",
-                            "-vn", speed_tmp,
-                        ]
-                        res_sp = subprocess.run(cmd_speed, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        if res_sp.returncode == 0 and os.path.exists(speed_tmp):
-                            try:
-                                audio_clip = AudioSegment.from_file(speed_tmp).set_frame_rate(44100).set_channels(2)
-                                clip_len_ms = len(audio_clip)
-                            except Exception:
-                                pass
-                            finally:
-                                if os.path.exists(speed_tmp):
-                                    os.remove(speed_tmp)
+                    needed_speed = min(1.9, clip_len_ms / max(250, available_slot_ms))
+                elif clip_len_ms > int(orig_dur_ms * 1.05):
+                    needed_speed = min(1.5, clip_len_ms / max(250, orig_dur_ms))
+                elif clip_len_ms < int(orig_dur_ms * 0.88) and available_slot_ms >= orig_dur_ms:
+                    needed_speed = max(0.85, clip_len_ms / max(250, orig_dur_ms))
 
-                # 2. Căn khớp mốc thời gian start trên timeline
+                if abs(needed_speed - 1.0) > 0.03:
+                    speed_tmp = fpath + ".sp.mp3"
+                    # ffmpeg atempo filter: hỗ trợ [0.5, 2.0]. Nếu vượt cần chain
+                    if needed_speed > 2.0:
+                        atempo_filter = f"atempo=2.0,atempo={needed_speed/2.0:.3f}"
+                    elif needed_speed < 0.5:
+                        atempo_filter = f"atempo=0.5,atempo={needed_speed/0.5:.3f}"
+                    else:
+                        atempo_filter = f"atempo={needed_speed:.3f}"
+                    cmd_speed = [
+                        "ffmpeg", "-y", "-i", fpath,
+                        "-filter:a", atempo_filter,
+                        "-vn", speed_tmp,
+                    ]
+                    res_sp = subprocess.run(cmd_speed, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    if res_sp.returncode == 0 and os.path.exists(speed_tmp):
+                        try:
+                            audio_clip = AudioSegment.from_file(speed_tmp).set_frame_rate(44100).set_channels(2)
+                            clip_len_ms = len(audio_clip)
+                        except Exception:
+                            pass
+                        finally:
+                            if os.path.exists(speed_tmp):
+                                os.remove(speed_tmp)
+
+                # 3. Căn khớp mốc thời gian start trên timeline
                 # Ưu tiên tuyệt đối mốc xuất hiện của thị giác (orig_start_ms)
                 start_ms = orig_start_ms
-                if cursor_ms > 0 and start_ms < (cursor_ms + 40):
-                    # Chỉ đẩy nhẹ nếu câu trước nói quá dài tràn sang câu sau
-                    start_ms = cursor_ms + 40
+                if cursor_ms > 0 and start_ms < cursor_ms:
+                    # Giới hạn độ trôi tối đa 150ms để không làm lệch khung hình của cảnh sau
+                    start_ms = min(cursor_ms + 20, orig_start_ms + 150)
 
                 clip_end_ms = start_ms + clip_len_ms
 
@@ -675,10 +682,16 @@ async def synthesize_timeline_voiceover(
                 master = master.overlay(audio_clip, position=start_ms)
                 cursor_ms = clip_end_ms
 
-                # Cập nhật mốc start / end / duration thực tế để phụ đề SRT khớp 100% từng mili-giây
+                # Cập nhật mốc start / end / duration cho phụ đề SRT:
+                # Giữ phụ đề hiển thị khớp trọn vẹn thời lượng nhân vật nói trên màn hình,
+                # không bị biến mất sớm nếu audio kết thúc trước orig_end_ms.
+                max_sub_end = (next_start_ms - 50) if (k < n_clips - 1) else (start_ms + clip_len_ms + 1000)
+                sub_end_ms = min(max_sub_end, max(clip_end_ms, orig_end_ms))
+
                 seg["start"] = round(start_ms / 1000.0, 2)
-                seg["end"] = round(clip_end_ms / 1000.0, 2)
+                seg["end"] = round(sub_end_ms / 1000.0, 2)
                 seg["duration"] = round(clip_len_ms / 1000.0, 2)
+                seg["audio_end"] = round(clip_end_ms / 1000.0, 2)
 
             # Cân chỉnh độ dài cuối cùng của master audio
             if calc_total_ms > len(master):

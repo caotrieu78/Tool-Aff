@@ -2,9 +2,9 @@
 VieNeu-TTS Engine Manager — Vietnamese Open-Source TTS (Preset Voices Only)
 Repo: https://github.com/pnnbao97/VieNeu-TTS (Apache 2.0), SDK: pip install vieneu
 
-Cung cấp 25 giọng đọc preset tiếng Việt (Bắc/Trung/Nam) — lấy động từ SDK (không hard-code
-tên giọng để tránh sai lệch khi thư viện cập nhật danh sách) và hỗ trợ emotion cues ngay
-trong văn bản: [cười], [thở dài], [hắng giọng].
+Cung cấp 25 giọng đọc preset tiếng Việt (Bắc/Trung/Nam) — lấy động từ SDK hoặc danh sách preset
+chuẩn (không cần nạp model AI nặng chỉ để lấy danh sách tên giọng).
+Hỗ trợ emotion cues ngay trong văn bản: [cười], [thở dài], [hắng giọng].
 """
 
 import json
@@ -27,11 +27,39 @@ try:
 except Exception:  # noqa: BLE001
     Vieneu = None  # type: ignore
 
+# Danh sách 25 giọng đọc preset chuẩn của VieNeu-TTS v3 Turbo
+# Giúp lấy danh sách hiển thị tức thì (0ms) mà KHÔNG cần nạp model AI nặng vào RAM
+STATIC_PRESET_VOICES = [
+    ("⭐ Adam bựa — Nam · Bắc · Phong cách tự nhiên", "Adam bựa"),
+    ("⭐ Trúc Ly — Nữ · Bắc · Phong cách tự nhiên", "Trúc Ly"),
+    ("⭐ Anh Khôi — Nam · Bắc · Phong cách kể chuyện", "Anh Khôi"),
+    ("⭐ Mai Anh — Nữ · Bắc · Phong cách tin tức", "Mai Anh"),
+    ("⭐ Minh Quân Pro — Nam · Bắc · Phong cách tự nhiên", "Minh Quân Pro"),
+    ("⭐ Thùy Dung — Nữ · Nam · Phong cách tin tức", "Thùy Dung"),
+    ("⭐ Thiền Tâm Đức — Nam · Bắc · Phong cách kể chuyện", "Thiền Tâm Đức"),
+    ("⭐ Ngọc Huyền — Nữ · Bắc · Giọng đọc tự nhiên", "Ngọc Huyền"),
+    ("⭐ Quang Sơn — Nam · Trung · Phong cách tự nhiên", "Quang Sơn"),
+    ("⭐ Ngọc Trân — Nữ · Trung · Phong cách tự nhiên", "Ngọc Trân"),
+    ("Minh Đức — Nam · Bắc · Phong cách tin tức", "Minh Đức"),
+    ("Phạm Tuyên — Nam · Bắc · Phong cách tự nhiên", "Phạm Tuyên"),
+    ("Thái Sơn — Nam · Nam · Phong cách kể chuyện", "Thái Sơn"),
+    ("Xuân Vĩnh — Nam · Bắc · Phong cách tự nhiên", "Xuân Vĩnh"),
+    ("Thanh Bình — Nam · Bắc · Phong cách kể chuyện", "Thanh Bình"),
+    ("Ngọc Linh — Nữ · Bắc · Phong cách kể chuyện", "Ngọc Linh"),
+    ("Đoan Trang — Nữ · Bắc · Phong cách tự nhiên", "Đoan Trang"),
+    ("Thục Đoan — Nữ · Nam · Phong cách kể chuyện", "Thục Đoan"),
+    ("Minh Triết — Nam · Nam · Phong cách tin tức", "Minh Triết"),
+    ("Mỹ Duyên — Nữ · Nam · Phong cách đọc truyện", "Mỹ Duyên"),
+    ("Quỳnh Anh — Nữ · Bắc · Phong cách đọc truyện", "Quỳnh Anh"),
+    ("Đức Trí — Nam · Nam · Phong cách đọc truyện", "Đức Trí"),
+    ("Kim Thanh — Nữ · Nam · Phong cách đọc truyện", "Kim Thanh"),
+    ("Adam — Nam · Nam · Giọng đọc tự nhiên", "Adam"),
+    ("Mạnh Dũng — Nam · Bắc · Phong cách tự nhiên", "Mạnh Dũng"),
+]
+
 
 def _slugify(text: str) -> str:
     """Chuyển tên giọng (có dấu tiếng Việt) thành id an toàn, vd 'Minh Quân Pro' -> 'minh_quan_pro'."""
-    # Đ/đ không tách được dấu qua NFKD (là ký tự gốc riêng, không phải D + dấu kết hợp) nên xử lý thủ công
-    # trước, tránh bị rớt hẳn khỏi id (vd 'Đức Trí' phải ra 'duc_tri', không phải 'uc_tri').
     text = text.replace("Đ", "D").replace("đ", "d")
     normalized = unicodedata.normalize("NFKD", text)
     ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
@@ -42,8 +70,7 @@ def _slugify(text: str) -> str:
 def _parse_preset_label(label: str) -> tuple[str, str, str]:
     """
     Phân tích label preset của VieNeu-TTS, dạng: '⭐ Adam bựa — Nam · Bắc · Phong cách tự nhiên'
-    Trả về (gender, region, style) theo đúng quy ước Male/Female và 'Miền Bắc/Trung/Nam' đang dùng
-    trong hệ thống. Nếu không khớp định dạng (SDK đổi format sau này), trả về giá trị mặc định an toàn.
+    Trả về (gender, region, style) theo đúng quy ước Male/Female và 'Miền Bắc/Trung/Nam'.
     """
     match = re.search(r"—\s*(Nam|Nữ)\s*·\s*(Bắc|Trung|Nam)\s*·\s*(.+)$", label)
     if not match:
@@ -64,7 +91,8 @@ def _presets_cache_path() -> Path:
 class VieNeuEngineManager:
     """
     Singleton quản lý model VieNeu-TTS.
-    Lazy-loading: chỉ nạp model (Vieneu()) khi lần đầu tiên cần sinh audio hoặc liệt kê preset.
+    Lazy-loading: CHỈ nạp model khi thực sự cần tổng hợp âm thanh (synthesize_to_file).
+    Tuyệt đối không nạp model AI nặng khi chỉ lấy danh sách giọng đọc.
     Thread-safe với Lock.
     """
 
@@ -84,7 +112,7 @@ class VieNeuEngineManager:
         return cls._instance
 
     def _get_engine(self) -> Any:
-        """Lazy-load engine VieNeu-TTS (mặc định v3 Turbo, 48kHz). Thread-safe."""
+        """Lazy-load engine VieNeu-TTS (ưu tiên ONNX CPU để tránh conflict PyTorch). Thread-safe."""
         if self._engine is None:
             if Vieneu is None:
                 raise RuntimeError(
@@ -92,11 +120,17 @@ class VieNeuEngineManager:
                 )
             logger.info("[VieNeu-TTS] Đang nạp model VieNeu-TTS (lần đầu có thể mất vài chục giây)...")
             try:
-                self._engine = Vieneu()
-                logger.info("[VieNeu-TTS] Model đã sẵn sàng.")
+                # Ưu tiên backend ONNX trên CPU: chạy mượt, nhẹ và hoàn toàn không phụ thuộc PyTorch C++
+                self._engine = Vieneu(mode="v3turbo", backend="onnx", device="cpu")
+                logger.info("[VieNeu-TTS] Model đã sẵn sàng (backend=ONNX/CPU).")
             except Exception as e:  # noqa: BLE001
-                logger.error(f"[VieNeu-TTS] Lỗi nạp model: {e}")
-                raise RuntimeError(f"[VieNeu-TTS] Không thể khởi tạo model: {e}")
+                logger.warning(f"[VieNeu-TTS] Thử fallback nạp model mặc định: {e}")
+                try:
+                    self._engine = Vieneu()
+                    logger.info("[VieNeu-TTS] Model đã sẵn sàng.")
+                except Exception as e2:
+                    logger.error(f"[VieNeu-TTS] Lỗi nạp model: {e2}")
+                    raise RuntimeError(f"[VieNeu-TTS] Không thể khởi tạo model: {e2}") from e2
         return self._engine
 
     def list_preset_voices(self, force_refresh: bool = False) -> list[dict[str, Any]]:
@@ -104,7 +138,7 @@ class VieNeuEngineManager:
         Trả về danh sách giọng preset dạng chuẩn của hệ thống:
         [{"id": "vieneu_minh_quan_pro", "name": "Minh Quân Pro (VieNeu-TTS)",
           "voice_name": "Minh Quân Pro", "engine": "vieneu", ...}, ...]
-        Kết quả được cache ra file JSON để tránh phải nạp lại model chỉ để liệt kê tên giọng.
+        Trực tiếp phân tích từ STATIC_PRESET_VOICES mà KHÔNG gọi model AI, tránh crash app.
         """
         cache_path = _presets_cache_path()
         if not force_refresh and cache_path.exists():
@@ -113,14 +147,10 @@ class VieNeuEngineManager:
                 if isinstance(cached, list) and cached:
                     return cached
             except Exception as e:  # noqa: BLE001
-                logger.warning(f"[VieNeu-TTS] Cache preset lỗi, sẽ nạp lại: {e}")
+                logger.warning(f"[VieNeu-TTS] Cache preset lỗi, dùng fallback tĩnh: {e}")
 
-        try:
-            engine = self._get_engine()
-            raw_voices = engine.list_preset_voices()
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"[VieNeu-TTS] Không thể lấy danh sách giọng preset: {e}")
-            return []
+        # Nếu model đã được nạp sẵn trong bộ nhớ thì lấy động từ engine, ngược lại dùng danh sách tĩnh
+        raw_voices = self._engine.list_preset_voices() if self._engine is not None else STATIC_PRESET_VOICES
 
         items: list[dict[str, Any]] = []
         for entry in raw_voices:
@@ -223,8 +253,8 @@ def is_vieneu_available() -> bool:
 
 def get_vieneu_preset_voices() -> list[dict[str, Any]]:
     """
-    Entry point an toàn dùng cho get_available_voices(): trả về [] ngay lập tức nếu
-    thư viện 'vieneu' chưa được cài, không kích hoạt nạp model.
+    Entry point an toàn dùng cho get_available_voices(): trả về danh sách preset ngay lập tức,
+    không kích hoạt nạp model AI nặng vào RAM.
     """
     if not is_vieneu_available():
         return []

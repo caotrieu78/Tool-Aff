@@ -397,17 +397,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # CÁC CHẾ ĐỘ VIỀN / BÓNG / CHỮ ĐƠN THUẦN (OUTLINE / SHADOW / BASIC)
         if sub_style_type == "outline":
             border_style = 1
-            outline = max(3, min(12, int(round(ass_font_size * 0.08 * scale))))
-            shadow = 0
+            outline = max(3, min(10, int(round(ass_font_size * 0.08 * scale))))
+            shadow = 2
+            outline_color = "&H00000000"  # Viền đen sắc nét chuẩn điện ảnh / CapCut / GenSub
+            back_color = "&H80000000"     # Bóng đổ nhẹ tự nhiên
         elif sub_style_type == "shadow":
             border_style = 1
             outline = 1
             shadow = max(3, min(12, int(round(ass_font_size * 0.08 * scale))))
+            outline_color = "&H00000000"
+            back_color = "&H90000000"
         else:
             border_style = 0
             outline = 0
             shadow = 0
-
         ass_header = f"""[Script Info]
 Title: Video Studio Subtitles
 ScriptType: v4.00+
@@ -417,7 +420,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{sub_font},{ass_font_size},{ass_primary},&H000000FF,{ass_back},{ass_back},{bold_val},{italic_val},0,0,100,100,0,0,{border_style},{outline},{shadow},2,35,35,{scaled_margin_v},1
+Style: Default,{sub_font},{ass_font_size},{ass_primary},&H000000FF,{outline_color},{back_color},{bold_val},{italic_val},0,0,100,100,0,0,{border_style},{outline},{shadow},2,35,35,{scaled_margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -629,8 +632,9 @@ def compose_localized_video(
             blur_h = max(blur_h, detected_sub["blur_h"])
             blur_y = max(0, int(round(blur_center_y - blur_h / 2)))
         else:
-            # Fallback vị trí phụ đề chuẩn TikTok/Douyin (84.25% chiều cao)
-            blur_center_y = int(round(video_h * 0.8425))
+            # Nếu video không có phụ đề chữ cứng gốc -> Linh hoạt dùng vị trí theo cấu hình sub_position_percent (25% hoặc 75%...)
+            pos_ratio = max(0.10, min(0.90, float(sub_position_percent) / 100.0))
+            blur_center_y = int(round(video_h * pos_ratio))
             blur_y = max(0, int(round(blur_center_y - blur_h / 2)))
 
         if sub_placement == "overlay":
@@ -650,9 +654,17 @@ def compose_localized_video(
 
     # 1. Che phụ đề cũ bằng dải làm mờ tinh gọn
     # TỰ ĐỘNG THÔNG MINH: Chỉ làm mờ khi video thực sự phát hiện có phụ đề chữ cứng gốc.
-    if cover_old_sub and detected_sub:
-        if not detected_sub.get("has_subtitle", False):
-            cover_old_sub = False
+    if cover_old_sub:
+        if detected_sub is not None:
+            if not detected_sub.get("has_subtitle", False):
+                cover_old_sub = False
+        else:
+            try:
+                from app.services.ocr_service import check_video_has_hardcoded_subtitles
+                if not check_video_has_hardcoded_subtitles(video_path):
+                    cover_old_sub = False
+            except Exception:
+                cover_old_sub = False
 
     if cover_old_sub:
         blur_rad = max(5, min(50, int(blur_amount)))
@@ -735,7 +747,10 @@ def compose_localized_video(
     # 3. Burn phụ đề mới tiếng Việt chuẩn pixel cao cấp (SAU KHI video đã được co giãn đồng bộ với giọng đọc)
     if show_subtitles and srt_path and os.path.exists(srt_path):
         ass_path = str(Path(srt_path).with_suffix(".ass"))
-        time_scale = (v_dur / a_dur) if (sync_mode != "hybrid" and has_voiceover and v_dur > 0 and a_dur > v_dur) else 1.0
+        # time_scale PHẢI LUÔN = 1.0: synthesize_timeline_voiceover đã đặt timestamps của từng segment
+        # đúng vào mốc thời gian gốc trên video (orig_start_ms). Việc scale thêm sẽ làm phụ đề lệch khung hình.
+        # Chỉ trong chế độ hybrid (kéo giãn toàn bộ video) mới cần scale phụ đề theo hệ số kéo giãn đó.
+        time_scale = (v_dur / a_dur) if (sync_mode == "stretch_video" and has_voiceover and v_dur > 0 and a_dur > v_dur) else 1.0
         generate_ass_from_srt(
             srt_path=srt_path,
             ass_path=ass_path,
@@ -782,8 +797,11 @@ def compose_localized_video(
     cmd.extend([
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
-        "-preset", "veryfast",
-        "-crf", "22",
+        "-preset", "medium",
+        "-crf", "18",
+        "-b:v", "4000k",
+        "-maxrate", "6000k",
+        "-bufsize", "8000k",
         "-c:a", "aac",
         "-b:a", "192k",
         "-movflags", "+faststart",

@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.gemini_service import (
     GeminiKeyPool,
     call_kie_ai_gemini,
+    HAS_NEW_GENAI,
+    genai,
+    types,
+    legacy_genai,
 )
 from app.core.crypto import decrypt_value
 
@@ -158,8 +162,10 @@ async def generate_script_from_video_vision(
 
     keys = await GeminiKeyPool.get_active_keys(db)
     if not keys:
-        logger.warning("[Vision] Không có Gemini/Kie.ai key hoạt động → dùng kịch bản dự phòng")
-        return _fallback_script(total_dur)
+        raise RuntimeError(
+            "[Vision AI] Không tìm thấy Gemini/Kie.ai API key nào đang hoạt động trong hệ thống. "
+            "Vui lòng vào mục Cài Đặt để thêm hoặc kích hoạt API Key!"
+        )
 
     # Video dài -> chia thành nhiều "cửa sổ" thời gian ~WINDOW_SECONDS, mỗi cửa sổ tự trích keyframe
     # + gọi Gemini riêng, thay vì luôn nhồi TOÀN BỘ video vào đúng 20 keyframe + 1 lần gọi duy nhất.
@@ -243,17 +249,44 @@ IMPORTANT: the "text_vi" value for every item must be written in natural, fluent
                 key_record: Any = raw_k
                 key_id: int = int(key_record.id)
                 api_key: str = decrypt_value(str(key_record.api_key_encrypted))
+                provider: str = getattr(key_record, "provider", "google") or "google"
 
                 try:
                     logger.info(
-                        f"[Vision] Gọi Kie.ai key #{key_id} | cửa sổ {w_start:.1f}-{w_end:.1f}s | "
+                        f"[Vision] Gọi AI key #{key_id} ({provider.upper()}) | cửa sổ {w_start:.1f}-{w_end:.1f}s | "
                         f"{len(keyframes_with_time)} frames"
                     )
-                    response_text = await call_kie_ai_gemini(
-                        api_key=api_key,
-                        prompt=contents,
-                        model_name="gemini-3-8-flash",
-                    )
+                    if provider == "kie":
+                        response_text = await call_kie_ai_gemini(
+                            api_key=api_key,
+                            prompt=contents,
+                            model_name="gemini-3-5-flash",
+                        )
+                    else:
+                        # Google AI Studio key
+                        google_contents = []
+                        for idx_f, (img_bytes, t_sec) in enumerate(keyframes_with_time):
+                            google_contents.append(f"Frame #{idx_f + 1} (at {t_sec:.1f}s):")
+                            if HAS_NEW_GENAI and types is not None:
+                                google_contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+                            else:
+                                google_contents.append({"mime_type": "image/jpeg", "data": img_bytes})
+                        google_contents.append(prompt)
+
+                        if HAS_NEW_GENAI and genai is not None:
+                            client = genai.Client(api_key=api_key)
+                            resp = client.models.generate_content(
+                                model="gemini-2.5-flash",
+                                contents=google_contents,
+                            )
+                            response_text = resp.text or ""
+                        elif legacy_genai is not None:
+                            legacy_genai.configure(api_key=api_key)
+                            model = legacy_genai.GenerativeModel("gemini-2.5-flash")
+                            resp = model.generate_content(google_contents)
+                            response_text = resp.text or ""
+                        else:
+                            raise RuntimeError("Google GenAI SDK chưa được cài đặt")
 
                     if not response_text:
                         logger.warning(f"[Vision] Key #{key_id} trả về response rỗng → thử key tiếp theo")
@@ -319,13 +352,12 @@ IMPORTANT: the "text_vi" value for every item must be written in natural, fluent
                     logger.warning(f"[Vision] Lỗi không xác định key #{key_id}: {str(e)[:250]} → thử key tiếp theo")
                     continue
 
-        # Tất cả key đều thất bại cho riêng cửa sổ này -> dùng kịch bản dự phòng chỉ cho đoạn này,
-        # không làm hỏng toàn bộ video vì các cửa sổ khác vẫn có thể thành công.
-        logger.error(f"[Vision] Cửa sổ {w_start:.1f}-{w_end:.1f}s: tất cả key thất bại → dùng kịch bản dự phòng")
-        return [
-            {**seg, "start": round(seg["start"] + w_start, 2), "end": round(seg["end"] + w_start, 2)}
-            for seg in _fallback_script(w_dur)
-        ]
+        # Tất cả key đều thất bại cho riêng cửa sổ này -> Báo lỗi trực tiếp
+        logger.error(f"[Vision] Cửa sổ {w_start:.1f}-{w_end:.1f}s: tất cả API key đều thất bại")
+        raise RuntimeError(
+            f"[Vision AI] Không thể phân tích video ở đoạn {w_start:.1f}s - {w_end:.1f}s do toàn bộ API Keys đều lỗi. "
+            f"Vui lòng kiểm tra lại trạng thái API Key trong Cài Đặt!"
+        )
 
     window_results = await asyncio.gather(*[_generate_window_script(w_s, w_e) for w_s, w_e in windows])
 
@@ -341,34 +373,3 @@ IMPORTANT: the "text_vi" value for every item must be written in natural, fluent
         f"cho video {total_dur:.1f}s"
     )
     return all_segments
-
-
-def _fallback_script(total_dur: float) -> List[Dict[str, Any]]:
-    """Tạo kịch bản dự phòng khi Vision AI không khả dụng — chia đều 3 đoạn."""
-    third = round(total_dur / 3, 2)
-    return [
-        {
-            "id": 1,
-            "start": 0.0,
-            "end": third,
-            "duration": third,
-            "text": "Opening segment",
-            "text_vi": "Cùng xem nội dung thú vị trong video này nhé!",
-        },
-        {
-            "id": 2,
-            "start": third,
-            "end": round(third * 2, 2),
-            "duration": third,
-            "text": "Middle segment",
-            "text_vi": "Thật sự rất ấn tượng và đáng để thử ngay!",
-        },
-        {
-            "id": 3,
-            "start": round(third * 2, 2),
-            "end": round(total_dur, 2),
-            "duration": round(total_dur - third * 2, 2),
-            "text": "Closing segment",
-            "text_vi": "Đừng bỏ lỡ — theo dõi để xem thêm nhiều nội dung hay!",
-        },
-    ]

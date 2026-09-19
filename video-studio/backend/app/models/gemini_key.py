@@ -29,6 +29,7 @@ class GeminiApiKey(Base):
     last_used_at = Column(DateTime, nullable=True)
     status = Column(Enum(GeminiKeyStatus), default=GeminiKeyStatus.active, index=True)
     is_default = Column(Boolean, default=False, server_default="0")  # ưu tiên dùng key này trước
+    preferred_model = Column(String(100), default="auto", server_default="auto")  # "auto" | "gpt-5-2" | "gemini-3-8-flash" | "gemini-3-5-flash" | "gpt-5-6-sol"
     is_active = Column(Boolean, default=True)                  # user có thể tạm dừng thủ công
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

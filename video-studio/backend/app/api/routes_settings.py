@@ -21,11 +21,18 @@ class GeminiKeyCreate(BaseModel):
     api_key: str
     label: str
     provider: Optional[str] = "auto"  # "google" | "kie" | "auto"
+    preferred_model: Optional[str] = "auto"
 
 
 class GeminiKeyTest(BaseModel):
+    model_config = {"protected_namespaces": ()}
     api_key: str
     provider: Optional[str] = None
+    model_name: Optional[str] = None
+
+
+class GeminiKeyModelUpdate(BaseModel):
+    preferred_model: str
 
 
 @router.get("/gemini-keys")
@@ -44,6 +51,7 @@ async def list_gemini_keys(db: AsyncSession = Depends(get_db)):
             "id": k_any.id,
             "label": k_any.label,
             "provider": getattr(k_any, "provider", "google") or "google",
+            "preferred_model": getattr(k_any, "preferred_model", "auto") or "auto",
             "is_default": bool(getattr(k_any, "is_default", False)),
             "masked_key": masked,
             "daily_quota_used": getattr(k_any, "daily_quota_used", 0) or 0,
@@ -64,7 +72,12 @@ async def add_gemini_key(body: GeminiKeyCreate, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=400, detail="API Key không được để trống")
 
     req_provider = (body.provider or "auto").strip().lower()
-    test_res = test_gemini_key(clean_key, provider=None if req_provider == "auto" else req_provider)
+    req_model = (body.preferred_model or "auto").strip()
+    test_res = test_gemini_key(
+        clean_key,
+        provider=None if req_provider == "auto" else req_provider,
+        model_name=req_model,
+    )
     if not test_res["valid"]:
         raise HTTPException(
             status_code=400,
@@ -73,11 +86,12 @@ async def add_gemini_key(body: GeminiKeyCreate, db: AsyncSession = Depends(get_d
 
     resolved_provider = test_res.get("provider") or (req_provider if req_provider != "auto" else "google")
 
-    default_label = "Kie.ai Gemini 3.8 Flash" if resolved_provider == "kie" else "Google Gemini Key"
+    default_label = f"Kie.ai ({req_model})" if resolved_provider == "kie" else "Google Gemini Key"
     new_key = GeminiApiKey(
         api_key_encrypted=encrypt_value(clean_key),
         label=body.label.strip() or default_label,
         provider=resolved_provider,
+        preferred_model=req_model,
         status=GeminiKeyStatus.active,
         daily_quota_limit=5000 if resolved_provider == "kie" else 1500,
         daily_quota_used=0,
@@ -95,6 +109,7 @@ async def add_gemini_key(body: GeminiKeyCreate, db: AsyncSession = Depends(get_d
             "id": new_key.id,
             "label": new_key.label,
             "provider": new_key.provider,
+            "preferred_model": new_key.preferred_model,
             "masked_key": masked,
             "status": new_key.status.value,
         },
@@ -102,10 +117,34 @@ async def add_gemini_key(body: GeminiKeyCreate, db: AsyncSession = Depends(get_d
     }
 
 
+@router.patch("/gemini-keys/{key_id}/model")
+async def update_key_model(
+    key_id: int,
+    body: GeminiKeyModelUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Cập nhật mô hình AI ưu tiên cho key đã lưu."""
+    stmt = select(GeminiApiKey).where(GeminiApiKey.id == key_id)
+    res = await db.execute(stmt)
+    key_rec = res.scalar_one_or_none()
+    if not key_rec:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    new_model = body.preferred_model.strip() or "auto"
+    key_rec.preferred_model = new_model
+    await db.commit()
+    return {
+        "success": True,
+        "key_id": key_id,
+        "preferred_model": new_model,
+        "message": f"Đã cập nhật mô hình ưu tiên: {new_model}",
+    }
+
+
 @router.post("/gemini-keys/test-raw")
 async def test_raw_key(body: GeminiKeyTest):
     """Kiểm tra trực tiếp một API key chưa lưu (Google hoặc Kie.ai)."""
-    res = test_gemini_key(body.api_key.strip(), provider=body.provider)
+    res = test_gemini_key(body.api_key.strip(), provider=body.provider, model_name=body.model_name)
     return res
 
 
@@ -119,10 +158,12 @@ async def test_existing_key(key_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Key not found")
 
     key_provider = getattr(key_rec, "provider", "google") or "google"
+    key_model = getattr(key_rec, "preferred_model", "auto") or "auto"
     test_res = await asyncio.to_thread(
         test_gemini_key,
         decrypt_value(str(key_rec.api_key_encrypted)),
         key_provider,
+        key_model,
     )
     rec_id = int(key_rec.id)  # type: ignore[arg-type]
     if test_res["valid"]:
@@ -161,6 +202,7 @@ async def test_and_reactivate_all(db: AsyncSession = Depends(get_db)):
             test_gemini_key,
             decrypt_value(str(k.api_key_encrypted)),
             getattr(k, "provider", "google") or "google",
+            getattr(k, "preferred_model", "auto") or "auto",
         )
         for k in keys
     ]
