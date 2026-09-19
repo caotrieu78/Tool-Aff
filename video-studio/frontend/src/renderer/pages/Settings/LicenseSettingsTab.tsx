@@ -251,7 +251,9 @@ export default function LicenseSettingsTab() {
                       const year = d.getFullYear();
                       return `${day}/${month}/${year}`;
                     }
-                  } catch (_) {}
+                  } catch (_) {
+                    // ignore date parse error
+                  }
                   return dateStr;
                 })()}
               </span>

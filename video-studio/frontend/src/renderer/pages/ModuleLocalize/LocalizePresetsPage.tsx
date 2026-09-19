@@ -213,7 +213,7 @@ export default function LocalizePresetsPage() {
               return updated;
             }
           }
-          let target = res.presets.find((p) => p.is_default) || res.presets[0];
+          const target = res.presets.find((p) => p.is_default) || res.presets[0];
           selectPresetForEdit(target);
           return target;
         });

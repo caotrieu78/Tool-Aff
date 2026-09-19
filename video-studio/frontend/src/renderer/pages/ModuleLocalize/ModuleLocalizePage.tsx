@@ -994,7 +994,9 @@ export default function ModuleLocalizePage() {
                           const el = e.currentTarget;
                           el.muted = isMutedPreview;
                           el.volume = 1.0;
-                          el.play().catch(() => {});
+                          el.play().catch(() => {
+                            // ignore autoplay restriction
+                          });
                         }}
                         className={`w-full h-full transition-all duration-200 ${effectiveFit}`}
                       />

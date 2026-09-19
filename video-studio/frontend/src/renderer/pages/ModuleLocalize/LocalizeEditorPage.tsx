@@ -191,7 +191,9 @@ export default function LocalizeEditorPage() {
         videoRef.current.src = targetUrl;
         videoRef.current.currentTime = currentPos;
         if (isPlaying) {
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => {
+            // ignore autoplay restriction
+          });
         }
       }
     }

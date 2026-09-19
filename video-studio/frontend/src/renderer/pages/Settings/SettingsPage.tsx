@@ -164,7 +164,9 @@ export default function SettingsPage() {
     title: '',
     message: '',
     isLoading: false,
-    onConfirm: async () => {},
+    onConfirm: async () => {
+      // initial no-op
+    },
   });
 
   // TTS state
@@ -178,7 +180,9 @@ export default function SettingsPage() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
+      } catch (e) {
+        // ignore parse error
+      }
     }
     return [];
   });
@@ -423,7 +427,9 @@ export default function SettingsPage() {
               setEnabledVoiceIds(parsed);
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          // ignore cache read error
+        }
       } else if (vList.length > 0) {
         const allIds = vList.map((v: TtsVoiceItem) => v.id);
         setEnabledVoiceIds(allIds);
