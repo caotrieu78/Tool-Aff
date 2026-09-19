@@ -22,6 +22,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Type,
+  FileText,
   BookOpen,
   Plus,
   Trash2,
@@ -461,6 +462,11 @@ export default function ModuleLocalizePage() {
         sub_bold: st.sub_bold !== undefined ? st.sub_bold : (st.subBold !== undefined ? st.subBold : true),
         sub_italic: st.sub_italic !== undefined ? st.sub_italic : (st.subItalic !== undefined ? st.subItalic : false),
         sub_margin_v: st.sub_margin_v !== undefined ? st.sub_margin_v : (st.subMarginV !== undefined ? st.subMarginV : 25),
+        keep_bgm_sfx: st.keep_bgm_sfx !== undefined ? st.keep_bgm_sfx : (st.keepBgmSfx !== undefined ? st.keepBgmSfx : false),
+        multi_voice: st.multi_voice !== undefined ? st.multi_voice : (st.multiVoice !== undefined ? st.multiVoice : false),
+        voice_male: st.voice_male || st.voiceMale || 'vi-VN-NamMinhNeural',
+        voice_female: st.voice_female || st.voiceFemale || 'vi-VN-HoaiMyNeural',
+        voice_narrator: st.voice_narrator || st.voiceNarrator || '',
         pronunciation_dict: dictMap,
       };
     };
@@ -718,6 +724,17 @@ export default function ModuleLocalizePage() {
     const cleanTitle = (item.title || `video_${item.videoId}`).replace(/[\\/:*?"<>|]/g, '_');
     setStepLogs((prev) => [...prev, `📥 Đang tải xuống: ${item.title}`]);
     await downloadVideoFile(item.outputUrl, `${cleanTitle}_viet_hoa.mp4`);
+  };
+
+  // Tải tài sản rời (.srt, .mp3, .mp4) trực tiếp từ API
+  const handleDownloadAsset = (videoId: number, format: 'srt' | 'mp3' | 'mp4') => {
+    const url = localizeApi.getExportUrl(videoId, format);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Tải hàng loạt các video đã tick chọn
@@ -1982,15 +1999,37 @@ export default function ModuleLocalizePage() {
                                   <span>Xem</span>
                                 </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownloadSingle(item)}
-                                  className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-1 transition shadow-sm cursor-pointer active:scale-95"
-                                  title="Tải video này về máy"
-                                >
-                                  <Download size={11} />
-                                  <span>Tải Về</span>
-                                </button>
+                                <div className="flex items-center bg-slate-900/90 border border-slate-700/80 rounded-lg p-0.5 shadow-sm">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadSingle(item)}
+                                    className="px-2 py-0.5 text-[10.5px] font-semibold text-emerald-300 hover:text-white hover:bg-emerald-600/50 rounded flex items-center gap-1 transition cursor-pointer"
+                                    title="Tải video MP4 hoàn chỉnh"
+                                  >
+                                    <Download size={11} />
+                                    <span>MP4</span>
+                                  </button>
+                                  <div className="w-[1px] h-3 bg-slate-700/80 my-auto" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadAsset(item.videoId, 'srt')}
+                                    className="px-2 py-0.5 text-[10.5px] font-semibold text-amber-300 hover:text-white hover:bg-amber-600/50 rounded flex items-center gap-1 transition cursor-pointer"
+                                    title="Tải phụ đề tiếng Việt rời (.SRT)"
+                                  >
+                                    <FileText size={11} />
+                                    <span>SRT</span>
+                                  </button>
+                                  <div className="w-[1px] h-3 bg-slate-700/80 my-auto" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadAsset(item.videoId, 'mp3')}
+                                    className="px-2 py-0.5 text-[10.5px] font-semibold text-pink-300 hover:text-white hover:bg-pink-600/50 rounded flex items-center gap-1 transition cursor-pointer"
+                                    title="Tải audio lồng tiếng Việt rời (.MP3)"
+                                  >
+                                    <Music size={11} />
+                                    <span>MP3</span>
+                                  </button>
+                                </div>
 
                                 {savedEditorIds.includes(item.videoId) ? (
                                   <button

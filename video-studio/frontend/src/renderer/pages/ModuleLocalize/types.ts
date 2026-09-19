@@ -16,6 +16,11 @@ export interface LocalizeSettings {
   syncMode: 'keep_duration' | 'hybrid';
   aiVoiceVolume: number;
   keepOriginalAudio: boolean;
+  keepBgmSfx?: boolean;
+  multiVoice?: boolean;
+  voiceMale?: string;
+  voiceFemale?: string;
+  voiceNarrator?: string;
   bgmVolume: number;
   originalVoiceVolume: number;
   coverOldSub: boolean;
@@ -51,6 +56,11 @@ export const DEFAULT_LOCALIZE_SETTINGS: LocalizeSettings = {
   syncMode: 'hybrid',
   aiVoiceVolume: 100,
   keepOriginalAudio: true,
+  keepBgmSfx: true,
+  multiVoice: false,
+  voiceMale: 'vi-VN-NamMinhNeural',
+  voiceFemale: 'vi-VN-HoaiMyNeural',
+  voiceNarrator: 'vi-VN-NamMinhNeural',
   bgmVolume: 18,
   originalVoiceVolume: 0,
   coverOldSub: false,

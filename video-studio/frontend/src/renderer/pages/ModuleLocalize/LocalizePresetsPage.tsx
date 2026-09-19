@@ -261,6 +261,11 @@ export default function LocalizePresetsPage() {
       customAiStyles: s.custom_ai_styles || s.customAiStyles || [],
       customAiPrompt: s.custom_ai_prompt || s.customAiPrompt || '',
       syncMode: s.sync_mode || s.syncMode || DEFAULT_LOCALIZE_SETTINGS.syncMode,
+      keepBgmSfx: s.keep_bgm_sfx !== undefined ? Boolean(s.keep_bgm_sfx) : true,
+      multiVoice: Boolean(s.multi_voice),
+      voiceMale: s.voice_male || 'vi-VN-NamMinhNeural',
+      voiceFemale: s.voice_female || 'vi-VN-HoaiMyNeural',
+      voiceNarrator: s.voice_narrator || s.voice_id || DEFAULT_LOCALIZE_SETTINGS.voiceId,
     });
   };
 
@@ -320,9 +325,14 @@ export default function LocalizePresetsPage() {
         ai_style_prompt: isCustomStyle ? activePrompt : '',
         voice_id: formSettings.voiceId,
         voice_speed: formSettings.voiceSpeed,
+        multi_voice: Boolean(formSettings.multiVoice),
+        voice_male: formSettings.voiceMale || 'vi-VN-NamMinhNeural',
+        voice_female: formSettings.voiceFemale || 'vi-VN-HoaiMyNeural',
+        voice_narrator: formSettings.voiceNarrator || formSettings.voiceId,
         sync_mode: formSettings.syncMode,
         volume_voiceover: formSettings.aiVoiceVolume,
         keep_original_audio: formSettings.keepOriginalAudio,
+        keep_bgm_sfx: formSettings.keepBgmSfx ?? true,
         volume_original: formSettings.bgmVolume,
         volume_original_voice: formSettings.originalVoiceVolume,
         cover_old_subtitle: formSettings.coverOldSub,
@@ -1264,8 +1274,74 @@ export default function LocalizePresetsPage() {
                       );
                     })}
                   </div>
-                </div>
-              )}
+
+                  {/* Tùy chọn Đa Giọng Đọc Theo Nhân Vật */}
+                    <div className="mt-4 p-4 rounded-2xl bg-[#0f1118] border border-slate-800 space-y-3">
+                      <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-white select-none">
+                        <input
+                          type="checkbox"
+                          checked={formSettings.multiVoice ?? false}
+                          onChange={(e) =>
+                            setFormSettings({ ...formSettings, multiVoice: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                        />
+                        <div className="flex flex-col">
+                          <span className="flex items-center gap-1.5">
+                            <span>👥 Kích hoạt Chế Độ Đa Giọng Đọc (Hội thoại Nam / Nữ / Dẫn chuyện)</span>
+                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">Mới</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            AI tự động nhận diện giới tính nhân vật và gán giọng đọc tương ứng (Nam Minh cho nhân vật Nam, Hoài My cho nhân vật Nữ).
+                          </span>
+                        </div>
+                      </label>
+
+                      {formSettings.multiVoice && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-sky-400">Giọng Nhân Vật Nam:</label>
+                            <select
+                              value={formSettings.voiceMale || 'vi-VN-NamMinhNeural'}
+                              onChange={(e) => setFormSettings({ ...formSettings, voiceMale: e.target.value })}
+                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                            >
+                              {voices.map(v => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-pink-400">Giọng Nhân Vật Nữ:</label>
+                            <select
+                              value={formSettings.voiceFemale || 'vi-VN-HoaiMyNeural'}
+                              onChange={(e) => setFormSettings({ ...formSettings, voiceFemale: e.target.value })}
+                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                            >
+                              {voices.map(v => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-amber-400">Giọng Người Dẫn Chuyện:</label>
+                            <select
+                              value={formSettings.voiceNarrator || formSettings.voiceId}
+                              onChange={(e) => setFormSettings({ ...formSettings, voiceNarrator: e.target.value })}
+                              className="w-full bg-[#161824] border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                            >
+                              {voices.map(v => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* ─────────────────────────────────────────────────────────────
                     SECTION 3: ÂM THANH & BGM
@@ -1315,7 +1391,7 @@ export default function LocalizePresetsPage() {
                         </div>
                       </div>
 
-                      {/* Giữ âm gốc */}
+                      {/* Giữ âm gốc & Tách lời thoại giữ BGM/SFX */}
                       <div className="p-5 rounded-2xl bg-[#0f1118] border border-slate-800 space-y-4">
                         <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-white select-none">
                           <input
@@ -1331,6 +1407,27 @@ export default function LocalizePresetsPage() {
 
                         {formSettings.keepOriginalAudio && (
                           <div className="space-y-4 pt-1">
+                            {/* Nút bật tách giọng nói gốc giữ trọn BGM & SFX */}
+                            <label className="flex items-start gap-2.5 cursor-pointer text-xs font-bold text-emerald-400 select-none bg-emerald-950/20 p-3 rounded-xl border border-emerald-500/20">
+                              <input
+                                type="checkbox"
+                                checked={formSettings.keepBgmSfx ?? true}
+                                onChange={(e) =>
+                                  setFormSettings({ ...formSettings, keepBgmSfx: e.target.checked })
+                                }
+                                className="w-4 h-4 mt-0.5 rounded text-emerald-600 bg-slate-900 border-slate-700 shrink-0"
+                              />
+                              <div className="flex flex-col">
+                                <span className="flex items-center gap-1.5">
+                                  <span>Tách giọng nói gốc — Giữ trọn vẹn Nhạc nền (BGM) & Hiệu ứng âm thanh (SFX)</span>
+                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">Khuyên dùng</span>
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-normal mt-0.5">
+                                  Triệt tiêu lời thoại tiếng Trung/Anh của nhân vật bằng bộ lọc triệt tiêu âm thanh trung tâm (Out-of-Phase Cancellation), bảo toàn trọn vẹn tiếng động kịch tính, tiếng cười, tiếng nổ và nhạc nền stereo.
+                                </span>
+                              </div>
+                            </label>
+
                             <div className="space-y-1.5">
                               <div className="flex items-center justify-between text-xs">
                                 <span className="text-slate-300 font-medium">Âm lượng nhạc nền gốc (BGM):</span>

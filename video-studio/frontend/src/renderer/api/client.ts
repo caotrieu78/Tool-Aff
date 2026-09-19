@@ -120,6 +120,11 @@ export const localizeApi = {
     sub_margin_v?: number;
     pronunciation_dict?: Record<string, string>;
     recognition_mode?: string;
+    keep_bgm_sfx?: boolean;
+    multi_voice?: boolean;
+    voice_male?: string;
+    voice_female?: string;
+    voice_narrator?: string;
   }) => request<{ success: boolean; job_id: number; status: string }>('/localize/submit', { method: 'POST', body: JSON.stringify(body) }),
   getStatus: (jobId: number) =>
     request<{
@@ -222,6 +227,10 @@ export const localizeApi = {
     request<{ success: boolean; preset: LocalizePreset }>(`/localize/presets/${id}/set-default`, {
       method: 'POST',
     }),
+  getExportUrl: (videoId: number, format: 'srt' | 'mp3' | 'mp4') => {
+    const port = (window as any).BACKEND_PORT ?? 8765;
+    return `http://127.0.0.1:${port}/api/localize/video/${videoId}/export/${format}`;
+  },
 };
 
 export interface LocalizePreset {
@@ -358,6 +367,24 @@ export const settingsApi = {
     request<{ success: boolean; message: string }>(`/settings/tiktok-channels/${channelId}`, {
       method: 'DELETE',
     }),
+  getStorageStats: () =>
+    request<{
+      success: boolean;
+      total_mb: number;
+      temp_mb: number;
+      temp_files_count: number;
+      original_mb: number;
+      output_mb: number;
+      video_count: number;
+      uploads_dir: string;
+    }>('/settings/storage/stats'),
+  cleanStorage: () =>
+    request<{
+      success: boolean;
+      freed_mb: number;
+      deleted_files_count: number;
+      remaining_temp_mb: number;
+    }>('/settings/storage/clean', { method: 'POST' }),
 };
 
 // ── Editor & Scheduler ──────────────────────────────────────────────────────

@@ -3,7 +3,9 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from pydantic import BaseModel
@@ -33,9 +35,16 @@ class LocalizeSubmitRequest(BaseModel):
     sync_mode: Optional[str] = "keep_duration"
     recognition_mode: Optional[str] = None
 
+    # Đa giọng đọc theo nhân vật (Nam / Nữ / Dẫn chuyện)
+    multi_voice: Optional[bool] = False
+    voice_male: Optional[str] = "vi-VN-NamMinhNeural"
+    voice_female: Optional[str] = "vi-VN-HoaiMyNeural"
+    voice_narrator: Optional[str] = None
+
     # Âm thanh & Làm mờ
     volume_voiceover: Optional[int] = 100
     keep_original_audio: Optional[bool] = True
+    keep_bgm_sfx: Optional[bool] = False
     volume_original: Optional[int] = 15
     volume_original_voice: Optional[int] = 0
     cover_old_subtitle: Optional[bool] = True
@@ -85,9 +94,14 @@ async def submit_localize_job(body: LocalizeSubmitRequest, db: AsyncSession = De
         "custom_ai_prompt": body.custom_ai_prompt or body.ai_style_prompt or "",
         "voice_id": body.voice_id,
         "voice_speed": body.voice_speed,
+        "multi_voice": bool(body.multi_voice),
+        "voice_male": body.voice_male or "vi-VN-NamMinhNeural",
+        "voice_female": body.voice_female or "vi-VN-HoaiMyNeural",
+        "voice_narrator": body.voice_narrator or body.voice_id or "vi-VN-HoaiMyNeural",
         "sync_mode": body.sync_mode or "keep_duration",
         "volume_voiceover": body.volume_voiceover,
         "keep_original_audio": body.keep_original_audio,
+        "keep_bgm_sfx": bool(body.keep_bgm_sfx),
         "volume_original": body.volume_original,
         "volume_original_voice": body.volume_original_voice,
         "cover_old_subtitle": body.cover_old_subtitle,
@@ -334,6 +348,10 @@ async def get_localize_editor_data(video_id: int, db: AsyncSession = Depends(get
 
     rel_localized = os.path.relpath(loc_mp4, settings.STORAGE_DIR).replace("\\", "/") if loc_mp4.exists() else None
     rel_orig = os.path.relpath(orig_mp4, settings.STORAGE_DIR).replace("\\", "/") if orig_mp4 and orig_mp4.exists() else None
+    loc_srt = loc_dir / "subtitles.srt"
+    loc_mp3 = loc_dir / "voiceover.mp3"
+    rel_srt = os.path.relpath(loc_srt, settings.STORAGE_DIR).replace("\\", "/") if loc_srt.exists() else None
+    rel_mp3 = os.path.relpath(loc_mp3, settings.STORAGE_DIR).replace("\\", "/") if loc_mp3.exists() else None
 
     return {
         "success": True,
@@ -343,15 +361,24 @@ async def get_localize_editor_data(video_id: int, db: AsyncSession = Depends(get
             "duration": float(v.duration or 0),
             "localized_video_url": f"/api/storage/{rel_localized}" if rel_localized else None,
             "original_video_url": f"/api/storage/{rel_orig}" if rel_orig else None,
+            "srt_url": f"/api/storage/{rel_srt}" if rel_srt else None,
+            "voiceover_url": f"/api/storage/{rel_mp3}" if rel_mp3 else None,
             "has_localized": loc_mp4.exists(),
+            "has_srt": loc_srt.exists(),
+            "has_voiceover": loc_mp3.exists(),
         },
         "segments": segments,
         "config": {
             "voice_id": cfg.get("voice_id", "vi-VN-HoaiMyNeural"),
             "voice_speed": float(cfg.get("voice_speed", 1.0)),
+            "multi_voice": bool(cfg.get("multi_voice", False)),
+            "voice_male": cfg.get("voice_male", "vi-VN-NamMinhNeural"),
+            "voice_female": cfg.get("voice_female", "vi-VN-HoaiMyNeural"),
+            "voice_narrator": cfg.get("voice_narrator", cfg.get("voice_id", "vi-VN-HoaiMyNeural")),
             "sync_mode": cfg.get("sync_mode", "keep_duration"),
             "volume_voiceover": int(cfg.get("volume_voiceover", 100)),
             "keep_original_audio": bool(cfg.get("keep_original_audio", True)),
+            "keep_bgm_sfx": bool(cfg.get("keep_bgm_sfx", False)),
             "volume_original": int(cfg.get("volume_original", 15)),
             "volume_original_voice": int(cfg.get("volume_original_voice", 0)),
             "cover_old_subtitle": bool(cfg.get("cover_old_subtitle", True)),
@@ -373,6 +400,44 @@ async def get_localize_editor_data(video_id: int, db: AsyncSession = Depends(get
             "sub_margin_v": int(cfg.get("sub_margin_v", 25)),
         }
     }
+
+
+@router.get("/video/{video_id}/export/{format}")
+async def export_localize_media(video_id: int, format: str, db: AsyncSession = Depends(get_db)):
+    """
+    Xuất rời file phụ đề (.srt), file audio thuyết minh (.mp3) hoặc video (.mp4)
+    với filename sạch chuẩn tên video để người dùng tải trực tiếp về máy.
+    """
+    stmt = select(Video).where(Video.id == video_id)
+    res = await db.execute(stmt)
+    video = res.scalar_one_or_none()
+    if not video:
+        raise HTTPException(status_code=404, detail="Video không tồn tại")
+
+    raw_title = str(getattr(video, "title", None) or f"video_{video_id}")
+    clean_title = re.sub(r'[^\w\s-]', '', raw_title).strip().replace(' ', '_')
+    if not clean_title:
+        clean_title = f"video_{video_id}"
+    loc_dir = Path(settings.STORAGE_DIR) / str(video_id) / "localized"
+
+    fmt = format.lower().strip()
+    if fmt == "srt":
+        fpath = loc_dir / "subtitles.srt"
+        if not fpath.exists():
+            raise HTTPException(status_code=404, detail="Chưa có file phụ đề SRT cho video này")
+        return FileResponse(str(fpath), media_type="text/plain; charset=utf-8", filename=f"{clean_title}.srt")
+    elif fmt in ["mp3", "audio"]:
+        fpath = loc_dir / "voiceover.mp3"
+        if not fpath.exists():
+            raise HTTPException(status_code=404, detail="Chưa có file audio lồng tiếng MP3 cho video này")
+        return FileResponse(str(fpath), media_type="audio/mpeg", filename=f"{clean_title}_voiceover.mp3")
+    elif fmt == "mp4":
+        fpath = loc_dir / "output_localized.mp4"
+        if not fpath.exists():
+            raise HTTPException(status_code=404, detail="Chưa có video Việt Hóa cho video này")
+        return FileResponse(str(fpath), media_type="video/mp4", filename=f"{clean_title}_viet_hoa.mp4")
+    else:
+        raise HTTPException(status_code=400, detail="Định dạng không hỗ trợ (chỉ hỗ trợ srt, mp3, mp4)")
 
 
 @router.post("/editor/{video_id}/re-render")
@@ -465,6 +530,15 @@ async def re_render_localize_editor_video(
 
     need_re_tts = req.re_synthesize_tts or voice_changed or text_changed or (not voiceover_path.exists())
 
+    multi_voice = bool(c.get("multi_voice", False))
+    voice_map = None
+    if multi_voice:
+        voice_map = {
+            "male": c.get("voice_male") or "vi-VN-NamMinhNeural",
+            "female": c.get("voice_female") or "vi-VN-HoaiMyNeural",
+            "narrator": c.get("voice_narrator") or voice_id,
+        }
+
     # 4. Sinh lại audio voiceover theo timeline nếu có thay đổi
     if need_re_tts:
         await synthesize_timeline_voiceover(
@@ -473,6 +547,8 @@ async def re_render_localize_editor_video(
             voice=voice_id,
             speed=voice_speed,
             total_duration=float(v.duration or 0.0),
+            multi_voice=multi_voice,
+            voice_map=voice_map,
         )
         # Cập nhật lại file srt & json sau khi thời lượng đã đồng bộ chính xác với audio thực tế
         await asyncio.to_thread(generate_srt_file, req.segments, str(srt_path))
@@ -482,6 +558,7 @@ async def re_render_localize_editor_video(
             logger.warning(f"Lỗi lưu subtitles.json sau TTS: {e}")
 
     # 5. FFmpeg Re-compose với toàn bộ tùy chọn mẫu sub & âm thanh thực tế
+    keep_bgm_sfx = bool(c.get("keep_bgm_sfx", False))
     try:
         await asyncio.to_thread(
             compose_localized_video,
@@ -509,6 +586,7 @@ async def re_render_localize_editor_video(
             sub_margin_v=sub_margin_v,
             blur_amount=blur_amount,
             blur_method=blur_method,
+            keep_bgm_sfx=keep_bgm_sfx,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi render video: {e}")

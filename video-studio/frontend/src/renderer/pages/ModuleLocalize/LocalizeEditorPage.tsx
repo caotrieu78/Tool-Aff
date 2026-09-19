@@ -4,7 +4,7 @@ import {
   ArrowLeft, Play, Pause, RotateCcw, Volume2, VolumeX, Sparkles, Sliders, Type,
   Mic, Save, Check, CheckCircle2, AlertCircle, Loader2, RefreshCw, Palette,
   Layers, Film, Clock, Edit3, ChevronRight, ChevronDown, Music, Search, Volume1, Eye,
-  SlidersHorizontal,
+  SlidersHorizontal, Download, FileText, User,
 } from 'lucide-react';
 import { localizeApi, settingsApi, libraryApi, LocalizePreset } from '../../api/client';
 
@@ -13,6 +13,7 @@ interface SegmentItem {
   end: number;
   text_zh: string;
   text_vi: string;
+  speaker?: 'male' | 'female' | 'narrator' | string;
 }
 
 interface VoiceItem {
@@ -326,6 +327,24 @@ export default function LocalizeEditorPage() {
     setHasUnrenderedChanges(true);
   };
 
+  const handleSegmentSpeakerChange = (index: number, newSpeaker: string) => {
+    const updated = [...segments];
+    updated[index] = { ...updated[index], speaker: newSpeaker };
+    setSegments(updated);
+    setHasUnrenderedChanges(true);
+  };
+
+  const handleExportFile = (format: 'srt' | 'mp3' | 'mp4') => {
+    if (!videoId) return;
+    const url = localizeApi.getExportUrl(Number(videoId), format);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Preview TTS voice sample
   const handleToggleVoicePreview = async (targetVoiceId: string) => {
     if (playingVoiceId === targetVoiceId && voiceAudioRef.current) {
@@ -370,10 +389,11 @@ export default function LocalizeEditorPage() {
       setIsReRendering(true);
       setReRenderSuccess(false);
 
-      // Check if text changed or voice changed
+      // Check if text changed, speaker changed, or voice changed
       const textChanged = JSON.stringify(segments.map(s => s.text_vi)) !== JSON.stringify(originalSegments.map(s => s.text_vi));
+      const speakerChanged = JSON.stringify(segments.map(s => s.speaker || 'narrator')) !== JSON.stringify(originalSegments.map(s => s.speaker || 'narrator'));
       const voiceChanged = voiceId !== originalVoiceId || voiceSpeed !== originalVoiceSpeed;
-      const reSynthesize = textChanged || voiceChanged;
+      const reSynthesize = textChanged || voiceChanged || speakerChanged;
 
       const configPayload = {
         sub_font: subFont,
@@ -544,6 +564,39 @@ export default function LocalizeEditorPage() {
               <span>Cấu hình: {presets.find((p) => p.id === Number(selectedPresetId))?.name}</span>
             </span>
           )}
+
+          {/* Export Assets Dropdown/Group */}
+          <div className="flex items-center bg-slate-900/90 border border-slate-700/70 rounded-xl p-0.5">
+            <button
+              type="button"
+              onClick={() => handleExportFile('srt')}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-300 hover:text-amber-300 hover:bg-slate-800 transition cursor-pointer"
+              title="Tải tệp phụ đề tiếng Việt (.SRT)"
+            >
+              <FileText size={12} className="text-amber-400" />
+              <span>Tải .SRT</span>
+            </button>
+            <div className="w-[1px] h-3.5 bg-slate-700/80 my-auto" />
+            <button
+              type="button"
+              onClick={() => handleExportFile('mp3')}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-300 hover:text-pink-300 hover:bg-slate-800 transition cursor-pointer"
+              title="Tải audio lồng tiếng Việt rời (.MP3)"
+            >
+              <Music size={12} className="text-pink-400" />
+              <span>Tải .MP3</span>
+            </button>
+            <div className="w-[1px] h-3.5 bg-slate-700/80 my-auto" />
+            <button
+              type="button"
+              onClick={() => handleExportFile('mp4')}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-300 hover:text-emerald-300 hover:bg-slate-800 transition cursor-pointer"
+              title="Tải video thành phẩm đã ghép phụ đề & lồng tiếng (.MP4)"
+            >
+              <Download size={12} className="text-emerald-400" />
+              <span>Tải .MP4</span>
+            </button>
+          </div>
 
           <button
             type="button"
@@ -1368,9 +1421,29 @@ export default function LocalizeEditorPage() {
                       <span>{formatTime(seg.start)} - {formatTime(seg.end)}</span>
                     </button>
 
-                    <span className="text-[10px] font-mono text-slate-500">
-                      Đoạn #{idx + 1}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Character/Speaker tag selector */}
+                      <select
+                        value={seg.speaker || 'narrator'}
+                        onChange={(e) => handleSegmentSpeakerChange(idx, e.target.value)}
+                        className={`text-[10.5px] font-semibold rounded-lg px-2 py-0.5 border cursor-pointer focus:outline-none transition ${
+                          seg.speaker === 'male'
+                            ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                            : seg.speaker === 'female'
+                            ? 'bg-pink-500/15 text-pink-300 border-pink-500/30'
+                            : 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                        }`}
+                        title="Phân loại vai / nhân vật đọc câu thoại này"
+                      >
+                        <option value="narrator" className="bg-[#121520] text-slate-200">🎙️ Dẫn chuyện</option>
+                        <option value="male" className="bg-[#121520] text-slate-200">🧑 Giọng Nam</option>
+                        <option value="female" className="bg-[#121520] text-slate-200">👩 Giọng Nữ</option>
+                      </select>
+
+                      <span className="text-[10px] font-mono text-slate-500">
+                        Đoạn #{idx + 1}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Chinese original text (for reference) */}

@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Dict
 
 import logging
 from app.core.config import settings
@@ -501,6 +501,8 @@ async def synthesize_timeline_voiceover(
     voice: str = "vi-VN-HoaiMyNeural",
     speed: float = 1.0,
     total_duration: float = 0.0,
+    multi_voice: bool = False,
+    voice_map: Optional[dict[str, str]] = None,
 ) -> str:
     """
     Tổng hợp file âm thanh lồng tiếng theo dòng thời gian (Audio Timeline Assembly):
@@ -509,6 +511,7 @@ async def synthesize_timeline_voiceover(
       nếu câu thoại tiếng Việt dài hơn khung hình để tránh hiện tượng dồn toa (drift) gây lệch tiếng.
     - Duy trì khoảng lặng (silence) tự nhiên giữa các phân cảnh — TUYỆT ĐỐI KHÔNG ép co khoảng lặng làm lệch phân cảnh thị giác.
     - Đồng bộ mốc thời gian start/end thực tế vào segments để phụ đề SRT khớp 100% từng từ với giọng đọc.
+    - Hỗ trợ chế độ Đa Giọng Đọc (multi_voice): Tự động đổi giọng cho nhân vật Nam, Nữ, Người dẫn chuyện.
     """
     valid_items: list[tuple[int, dict[str, Any], str]] = []
     for idx, seg in enumerate(segments):
@@ -538,6 +541,19 @@ async def synthesize_timeline_voiceover(
         sem = asyncio.Semaphore(4)
 
         async def _synth_item(orig_idx: int, seg: dict[str, Any], tmp_path: str, txt: str):
+            # Quyết định giọng đọc cho câu này (hỗ trợ Đa Giọng Đọc theo nhân vật)
+            cur_voice = voice
+            if multi_voice and voice_map:
+                spk = str(seg.get("speaker") or "narrator").lower().strip()
+                if spk in voice_map and voice_map[spk]:
+                    cur_voice = voice_map[spk]
+                elif spk == "male" and voice_map.get("male"):
+                    cur_voice = voice_map["male"]
+                elif spk == "female" and voice_map.get("female"):
+                    cur_voice = voice_map["female"]
+                elif voice_map.get("narrator"):
+                    cur_voice = voice_map["narrator"]
+
             async with sem:
                 success = False
                 for attempt in range(2):
@@ -545,7 +561,7 @@ async def synthesize_timeline_voiceover(
                         await text_to_speech_file(
                             text=txt,
                             output_path=tmp_path,
-                            voice=voice,
+                            voice=cur_voice,
                             speed=speed,
                         )
                         if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 500:
@@ -556,7 +572,7 @@ async def synthesize_timeline_voiceover(
                         await asyncio.sleep(0.2)
 
                 if not success:
-                    fb_voice = "vi-VN-NamMinhNeural" if "nam" in voice.lower() else "vi-VN-HoaiMyNeural"
+                    fb_voice = "vi-VN-NamMinhNeural" if "nam" in cur_voice.lower() else "vi-VN-HoaiMyNeural"
                     try:
                         await text_to_speech_file(
                             text=txt,

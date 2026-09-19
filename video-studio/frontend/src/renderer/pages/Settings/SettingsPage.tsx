@@ -32,6 +32,8 @@ import {
   Save,
   Coins,
   Globe,
+  HardDrive,
+  Film,
 } from 'lucide-react';
 import { settingsApi, libraryApi, publishApi } from '../../api/client';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -82,15 +84,59 @@ function getEngineDisplay(engine: string): { label: string; badgeClass: string }
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as 'gemini' | 'tts' | 'tiktok' | 'license') || 'gemini';
-  const [activeTab, setActiveTab] = useState<'gemini' | 'tts' | 'tiktok' | 'license'>(initialTab);
+  const initialTab = (searchParams.get('tab') as 'gemini' | 'tts' | 'tiktok' | 'license' | 'storage') || 'gemini';
+  const [activeTab, setActiveTab] = useState<'gemini' | 'tts' | 'tiktok' | 'license' | 'storage'>(initialTab);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'tts' || tab === 'gemini' || tab === 'tiktok' || tab === 'license') {
+    if (tab === 'tts' || tab === 'gemini' || tab === 'tiktok' || tab === 'license' || tab === 'storage') {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  // Storage state
+  const [storageStats, setStorageStats] = useState<{
+    total_mb: number;
+    temp_mb: number;
+    temp_files_count: number;
+    original_mb: number;
+    output_mb: number;
+    video_count: number;
+    uploads_dir: string;
+  } | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+  const [cleaningStorage, setCleaningStorage] = useState(false);
+  const [storageCleanResult, setStorageCleanResult] = useState<string | null>(null);
+
+  const loadStorageStats = async () => {
+    try {
+      setLoadingStorage(true);
+      const res = await settingsApi.getStorageStats();
+      if (res && res.success) {
+        setStorageStats(res);
+      }
+    } catch (err: any) {
+      console.error('Failed to load storage stats:', err);
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  const handleCleanStorage = async () => {
+    try {
+      setCleaningStorage(true);
+      setStorageCleanResult(null);
+      const res = await settingsApi.cleanStorage();
+      if (res && res.success) {
+        setStorageCleanResult(`Đã dọn dẹp thành công ${res.freed_mb} MB (${res.deleted_files_count} file tạm).`);
+        await loadStorageStats();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi dọn dẹp bộ nhớ');
+    } finally {
+      setCleaningStorage(false);
+    }
+  };
 
   // Gemini state
   const [keys, setKeys] = useState<GeminiKeyItem[]>([]);
@@ -406,6 +452,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeTab === 'tiktok') {
       loadTiktokChannels();
+    }
+    if (activeTab === 'storage') {
+      loadStorageStats();
     }
   }, [activeTab]);
 
@@ -799,6 +848,23 @@ export default function SettingsPage() {
           >
             <ShieldCheck size={13} />
             <span>Bản Quyền</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('storage')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              activeTab === 'storage'
+                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <HardDrive size={13} />
+            <span>Bộ Nhớ & Dọn Dẹp</span>
+            {storageStats && storageStats.temp_mb > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px]">
+                {storageStats.temp_mb}MB
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1683,6 +1749,166 @@ export default function SettingsPage() {
 
         {/* Tab 4: License / Bản Quyền (Phase 5) */}
         {activeTab === 'license' && <LicenseSettingsTab />}
+
+        {/* Tab 5: Storage / Quản lý Bộ Nhớ & Dọn Dẹp File Tạm */}
+        {activeTab === 'storage' && (
+          <div className="space-y-6">
+            {/* Header / Intro */}
+            <div className="bg-[#121520] border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <HardDrive size={18} className="text-indigo-400" />
+                  <span>Quản Lý Dung Lượng & Dọn Dẹp Bộ Nhớ Tạm</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  Giám sát dung lượng ổ cứng bị chiếm dụng bởi các video gốc, video thành phẩm và tệp đệm xử lý. Dọn dẹp an toàn các tệp audio trung gian để giải phóng không gian lưu trữ cho máy tính.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={loadingStorage || cleaningStorage}
+                onClick={loadStorageStats}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition cursor-pointer self-start md:self-auto disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={loadingStorage ? 'animate-spin text-indigo-400' : 'text-slate-400'} />
+                <span>Làm Mới</span>
+              </button>
+            </div>
+
+            {/* Notification alert if cleaned */}
+            {storageCleanResult && (
+              <div className="p-4 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                <span>{storageCleanResult}</span>
+              </div>
+            )}
+
+            {/* 4 Bento Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Metric 1: Total */}
+              <div className="bg-[#121520] border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium">Tổng Dung Lượng</span>
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <HardDrive size={15} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white font-mono tracking-tight">
+                    {loadingStorage && !storageStats ? '...' : `${storageStats?.total_mb ?? 0} MB`}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">Toàn bộ thư mục uploads</p>
+                </div>
+              </div>
+
+              {/* Metric 2: Temp Cache */}
+              <div className="bg-[#121520] border border-amber-500/20 rounded-2xl p-4 flex flex-col justify-between bg-gradient-to-b from-amber-500/5 to-transparent">
+                <div className="flex items-center justify-between text-amber-300 mb-2">
+                  <span className="text-xs font-medium">File Tạm / Cache</span>
+                  <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    <Trash2 size={15} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-amber-300 font-mono tracking-tight">
+                    {loadingStorage && !storageStats ? '...' : `${storageStats?.temp_mb ?? 0} MB`}
+                  </div>
+                  <p className="text-[11px] text-amber-400/70 mt-1">
+                    {storageStats?.temp_files_count ?? 0} tệp tạm có thể dọn ngay
+                  </p>
+                </div>
+              </div>
+
+              {/* Metric 3: Original Videos */}
+              <div className="bg-[#121520] border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium">Video Gốc Đã Tải Lên</span>
+                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    <Tv size={15} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white font-mono tracking-tight">
+                    {loadingStorage && !storageStats ? '...' : `${storageStats?.original_mb ?? 0} MB`}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">Lưu trữ video nguồn an toàn</p>
+                </div>
+              </div>
+
+              {/* Metric 4: Output Videos */}
+              <div className="bg-[#121520] border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-400 mb-2">
+                  <span className="text-xs font-medium">Video Thành Phẩm</span>
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <Film size={15} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white font-mono tracking-tight">
+                    {loadingStorage && !storageStats ? '...' : `${storageStats?.output_mb ?? 0} MB`}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">{storageStats?.video_count ?? 0} video trong hệ thống</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Box: Safe Cleanup */}
+            <div className="bg-[#121520] border border-slate-800 rounded-2xl p-6 flex flex-col gap-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Sparkles size={16} className="text-amber-400" />
+                    <span>Dọn Dẹp Bộ Nhớ Đệm Tự Động (Safe Cleaner)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Xóa an toàn các tệp audio trung gian (.wav) và tệp phụ đề nháp được tạo ra trong quá trình lồng tiếng & ghép video.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={cleaningStorage || !storageStats || storageStats.temp_files_count === 0}
+                  onClick={handleCleanStorage}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-md shadow-amber-950/40 transition cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                >
+                  {cleaningStorage ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Đang dọn dẹp...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>Dọn Dẹp Ngay ({storageStats?.temp_mb ?? 0} MB)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#0e111a] border border-slate-800/80 text-xs space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                  <CheckCircle2 size={14} />
+                  <span>Cơ chế bảo vệ dữ liệu tuyệt đối (Zero-Risk):</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11.5px] text-slate-400 pl-6">
+                  <div>
+                    <span className="text-slate-300 font-medium">• Giữ nguyên 100%:</span> Video gốc, video đã Việt Hóa thành phẩm (.mp4).
+                  </div>
+                  <div>
+                    <span className="text-slate-300 font-medium">• Giữ nguyên 100%:</span> File phụ đề xuất (.srt) và file âm thanh lồng tiếng (.mp3).
+                  </div>
+                  <div>
+                    <span className="text-slate-300 font-medium">• Giữ nguyên 100%:</span> Giọng đọc đã nhân bản (clone), kịch bản mẫu và dữ liệu SQLite.
+                  </div>
+                  <div>
+                    <span className="text-amber-400 font-medium">• Chỉ xóa:</span> File sóng âm tạm thời (.wav) và file scratch render không còn sử dụng.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

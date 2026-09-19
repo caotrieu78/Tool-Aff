@@ -1,5 +1,7 @@
 import asyncio
 import httpx
+import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +10,14 @@ from pydantic import BaseModel
 from typing import Optional, Any
 from pathlib import Path
 
+from app.core.config import settings
 from app.core.db import get_db
 from app.core.crypto import encrypt_value, decrypt_value
 from app.models.gemini_key import GeminiApiKey, GeminiKeyStatus
 from app.services.gemini_service import test_gemini_key, GeminiKeyPool
 from app.services.tts_service import get_available_voices, get_or_create_voice_preview
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -437,4 +442,114 @@ async def remove_tiktok_channel(channel_id: int):
     if not ok:
         raise HTTPException(status_code=404, detail="Không tìm thấy kênh TikTok")
     return {"success": True, "message": f"Đã xóa kênh #{channel_id}"}
+
+
+@router.get("/storage/stats")
+async def get_storage_stats():
+    """
+    Thống kê dung lượng ổ đĩa:
+    - Tổng dung lượng thư mục storage
+    - Dung lượng file tạm (audio_source.wav, temp_frames, *.ass, *.tmp)
+    - Dung lượng video thành phẩm (output_localized.mp4, final_*)
+    - Dung lượng video gốc (original.mp4)
+    - Số lượng video và file tạm
+    """
+    storage_path = Path(settings.STORAGE_DIR)
+    total_bytes = 0
+    temp_bytes = 0
+    output_bytes = 0
+    original_bytes = 0
+    temp_files_count = 0
+    video_count = 0
+
+    if storage_path.exists():
+        for root, dirs, files in os.walk(storage_path):
+            rel_root = os.path.relpath(root, storage_path)
+            if rel_root.startswith("tiktok_profiles") or rel_root.startswith("custom_voices"):
+                continue
+
+            for f in files:
+                fp = Path(root) / f
+                try:
+                    size = fp.stat().st_size
+                except Exception:
+                    continue
+
+                total_bytes += size
+                name_lower = f.lower()
+
+                if name_lower.startswith("original"):
+                    original_bytes += size
+                    video_count += 1
+                elif "output" in name_lower or "final" in name_lower:
+                    output_bytes += size
+                elif (
+                    name_lower.endswith(".tmp")
+                    or name_lower.endswith(".wav")
+                    or name_lower.endswith(".ass")
+                    or "frame" in name_lower
+                    or "temp" in name_lower
+                ):
+                    temp_bytes += size
+                    temp_files_count += 1
+
+    return {
+        "success": True,
+        "total_bytes": total_bytes,
+        "total_mb": round(total_bytes / (1024 * 1024), 2),
+        "total_gb": round(total_bytes / (1024 * 1024 * 1024), 2),
+        "temp_bytes": temp_bytes,
+        "temp_mb": round(temp_bytes / (1024 * 1024), 2),
+        "temp_files_count": temp_files_count,
+        "original_bytes": original_bytes,
+        "original_mb": round(original_bytes / (1024 * 1024), 2),
+        "output_bytes": output_bytes,
+        "output_mb": round(output_bytes / (1024 * 1024), 2),
+        "video_count": video_count,
+    }
+
+
+@router.post("/storage/clean")
+async def clean_storage_cache():
+    """
+    Dọn dẹp file tạm, audio_source.wav và các file trung gian
+    để giải phóng dung lượng ổ đĩa một cách an toàn.
+    """
+    storage_path = Path(settings.STORAGE_DIR)
+    freed_bytes = 0
+    deleted_count = 0
+
+    if storage_path.exists():
+        for root, dirs, files in os.walk(storage_path):
+            rel_root = os.path.relpath(root, storage_path)
+            if rel_root.startswith("tiktok_profiles") or rel_root.startswith("custom_voices"):
+                continue
+
+            for f in files:
+                name_lower = f.lower()
+                is_temp = (
+                    name_lower == "audio_source.wav"
+                    or name_lower.endswith(".tmp")
+                    or name_lower.endswith(".ass")
+                    or name_lower.startswith("temp_")
+                    or (name_lower.endswith(".wav") and "gensub" not in name_lower)
+                )
+
+                if is_temp:
+                    fp = Path(root) / f
+                    try:
+                        sz = fp.stat().st_size
+                        fp.unlink()
+                        freed_bytes += sz
+                        deleted_count += 1
+                    except Exception as e:
+                        logger.warning(f"Không thể xóa file tạm {fp}: {e}")
+
+    return {
+        "success": True,
+        "freed_bytes": freed_bytes,
+        "freed_mb": round(freed_bytes / (1024 * 1024), 2),
+        "deleted_count": deleted_count,
+        "message": f"Đã giải phóng thành công {round(freed_bytes / (1024 * 1024), 1)} MB bộ nhớ ({deleted_count} file tạm).",
+    }
 

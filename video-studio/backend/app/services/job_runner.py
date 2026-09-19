@@ -117,6 +117,15 @@ async def run_localize_pipeline(job_id: int):
             logger.info(f"[JobRunner] 🎨 Job #{job_id}: Áp dụng phong cách tiêu chuẩn: '{style}'")
         voice_id = config.get("voice_id", "vi-VN-HoaiMyNeural")
         voice_speed = float(config.get("voice_speed", 1.0))
+        multi_voice = bool(config.get("multi_voice", False))
+        voice_male = str(config.get("voice_male") or "vi-VN-NamMinhNeural")
+        voice_female = str(config.get("voice_female") or "vi-VN-HoaiMyNeural")
+        voice_narrator = str(config.get("voice_narrator") or voice_id)
+        voice_map = {
+            "male": voice_male,
+            "female": voice_female,
+            "narrator": voice_narrator,
+        }
         
         # 3 Trạng thái nhận diện: voice_only (Có lời không sub), ocr_only (Có sub không lời), ai_vision (Không lời không sub)
         recog_type = str(config.get("recognition_mode") or getattr(video, "recognition_type", None) or "voice_only")
@@ -132,6 +141,7 @@ async def run_localize_pipeline(job_id: int):
         bgm_volume = float(config.get("volume_original", 15)) / 100.0
         sync_mode = str(config.get("sync_mode", "keep_duration"))
         keep_original_audio = bool(config.get("keep_original_audio", True))
+        keep_bgm_sfx = bool(config.get("keep_bgm_sfx", False))
         voice_volume = float(config.get("volume_voiceover", 100)) / 100.0
         blur_amount = int(config.get("blur_amount", 25))
         blur_method = str(config.get("blur_method", "blur"))
@@ -291,9 +301,18 @@ async def run_localize_pipeline(job_id: int):
                     voice=voice_id,
                     speed=voice_speed,
                     total_duration=float(video.duration or 0.0),
+                    multi_voice=multi_voice,
+                    voice_map=voice_map,
                 )
 
-            # Tạo file phụ đề SRT (sau khi segments đã được đồng bộ mốc thời gian với giọng đọc thực tế)
+            # Lưu file phụ đề JSON (kèm speaker nhãn nhân vật) và file SRT
+            sub_json_path = str(job_dir / "subtitles.json")
+            try:
+                with open(sub_json_path, "w", encoding="utf-8") as f:
+                    json.dump(translated_segments, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                logger.warning(f"Lỗi lưu subtitles.json: {e}")
+
             srt_path = str(job_dir / "subtitles.srt")
             await asyncio.to_thread(generate_srt_file, translated_segments, srt_path)
 
@@ -349,6 +368,7 @@ async def run_localize_pipeline(job_id: int):
                     blur_amount=blur_amount,
                     blur_method=blur_method,
                     keep_original_audio=keep_original_audio,
+                    keep_bgm_sfx=keep_bgm_sfx,
                 )
 
             # Hoàn tất thành công!

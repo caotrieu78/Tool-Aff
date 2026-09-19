@@ -570,6 +570,7 @@ def compose_localized_video(
     blur_amount: int = 25,
     blur_method: str = "blur",
     keep_original_audio: bool = True,
+    keep_bgm_sfx: bool = False,
 ) -> str:
     """
     Ghép video hoàn chỉnh bằng FFmpeg:
@@ -696,12 +697,15 @@ def compose_localized_video(
             current_v = "[v_stretched]"
             bgm_tempo = "atempo=0.83333,"
 
+        # Tách giọng nói tiếng Trung gốc, giữ lại trọn vẹn nhạc nền (BGM) và hiệu ứng âm thanh (SFX)
+        vocal_suppression = "stereotools=mlev=0.10:slev=1.20," if keep_bgm_sfx else ""
+
         # Voiceover plays at natural speed
         audio_filter_parts = [
             f"[1:a]volume={voice_volume:.3f},apad[a_voice]"
         ]
         if video_has_audio and actual_bgm_vol > 0.005:
-            audio_filter_parts.append(f"[0:a]{bgm_tempo}volume={actual_bgm_vol:.3f},apad[a_bgm]")
+            audio_filter_parts.append(f"[0:a]{bgm_tempo}{vocal_suppression}volume={actual_bgm_vol:.3f},apad[a_bgm]")
             audio_filter_parts.append(
                 f"[a_bgm][a_voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[a_mixed]"
             )
@@ -717,6 +721,9 @@ def compose_localized_video(
         filter_chains.append(f"{current_v}null[v_stretched]")
         current_v = "[v_stretched]"
 
+        # Tách giọng nói tiếng Trung gốc, giữ lại trọn vẹn nhạc nền (BGM) và hiệu ứng âm thanh (SFX)
+        vocal_suppression = "stereotools=mlev=0.10:slev=1.20," if keep_bgm_sfx else ""
+
         if has_voiceover:
             if v_dur > 0 and a_dur > v_dur:
                 # Cần time-stretch audio vừa khít độ dài video gốc mà không đổi cao độ.
@@ -731,7 +738,7 @@ def compose_localized_video(
                 f"[1:a]{tempo_str}volume={voice_volume:.3f},apad[a_voice]"
             ]
             if video_has_audio and actual_bgm_vol > 0.005:
-                audio_filter_parts.append(f"[0:a]volume={actual_bgm_vol:.3f},apad[a_bgm]")
+                audio_filter_parts.append(f"[0:a]{vocal_suppression}volume={actual_bgm_vol:.3f},apad[a_bgm]")
                 audio_filter_parts.append(
                     f"[a_bgm][a_voice]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[a_mixed]"
                 )
@@ -742,7 +749,7 @@ def compose_localized_video(
             filter_chains.extend(audio_filter_parts)
         else:
             if video_has_audio and actual_bgm_vol > 0.005:
-                filter_chains.append(f"[0:a]volume={actual_bgm_vol:.3f},alimiter=limit=0.95:attack=5:release=50[a_final]")
+                filter_chains.append(f"[0:a]{vocal_suppression}volume={actual_bgm_vol:.3f},alimiter=limit=0.95:attack=5:release=50[a_final]")
 
     # 3. Burn phụ đề mới tiếng Việt chuẩn pixel cao cấp (SAU KHI video đã được co giãn đồng bộ với giọng đọc)
     if show_subtitles and srt_path and os.path.exists(srt_path):

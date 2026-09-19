@@ -938,17 +938,26 @@ async def translate_chinese_segments(
         "ABSOLUTELY NEVER act as a third-person narrator or storyteller (DO NOT use 'anh ấy', 'cô ấy', 'hãy nhìn người này...', 'chàng trai này...'). "
         "Translate the spoken lines, emotional reactions, or inner thoughts directly as if the character on screen is speaking to the camera or other characters."
     )
+    _STYLE_HAI_HUOC = (
+        "Viral Comedy & TikTok Slang style: Witty, hilarious, playful, and trend-aware. "
+        "Use popular Vietnamese youth idioms, humorous conversational phrases (e.g. 'ối dồi ôi', 'u là trời', 'hết nước chấm', 'tới công chuyện', 'nhìn cái mặt kìa'), "
+        "deliver funny character reactions and witty punchlines that keep viewers laughing and glued to the screen."
+    )
+    _STYLE_HOAT_HINH = (
+        "Animated Cartoon & Fantasy Voiceover style: Vivid, imaginative, energetic, and expressive. "
+        "Perfect for cute animated characters (e.g. little frog, silly cat, animals, fairy-tale creatures). "
+        "Use lively, playful dialogue, mischievous reactions, and humorous storytelling that appeals to viewers of all ages."
+    )
     style_guide = {
         "chuan_goc": _STYLE_CHUAN_GOC,
         "chuẩn gốc": _STYLE_CHUAN_GOC,
         "bám sát lời gốc": _STYLE_CHUAN_GOC,
         "bám sát": _STYLE_CHUAN_GOC,
         "đời thường": "Natural, warm, everyday conversational tone. Short and casual, fitting a TikTok/Douyin short-video voiceover.",
-        "hài hước": "Humorous, witty tone that follows youth trends. Playful and engaging.",
+        "hài hước": _STYLE_HAI_HUOC,
+        "funny": _STYLE_HAI_HUOC,
         "kể chuyện": "Warm, narrative, expressive tone, as if confiding in someone or telling a captivating story.",
         "chuyên gia": "Professional, precise, trustworthy tone with detailed analysis of the product or topic.",
-        # "review_phim"/"review phim" là 2 key tương ứng 2 quy ước đặt id khác nhau từng dùng trong app —
-        # giữ cả 2 để không phá cấu hình cũ đã lưu trước đây, chỉ trỏ chung 1 nội dung để tránh lệch nhau.
         "review_phim": _STYLE_REVIEW_PHIM,
         "review phim": _STYLE_REVIEW_PHIM,
         "hoạt hình": _STYLE_HOAT_HINH,
@@ -994,25 +1003,25 @@ async def translate_chinese_segments(
         "   - BẢO ĐẢM TÍNH LOGIC HÀNH ĐỘNG CỦA CÂU CHUYỆN: Lời thoại phải phản ánh đúng hành vi của nhân vật (ai thách đấu, ai bị trói, ai cứu người), không bao giờ dịch ra những câu phi logic hoặc câu văn dịch máy tối nghĩa.\n\n"
         "2. TUYỆT ĐỐI XÓA BỎ DỊCH THÔ HÁN VIỆT & VĂN PHONG DỊCH MÁY:\n"
         "   - NGHIÊM CẤM dịch âm Hán Việt thô, tối nghĩa, ngô nghê hoặc câu từ sáo rỗng mà người Việt hiện đại không ai dùng trong giao tiếp đời thường.\n"
-        "   - Chuyển ngữ sang KHẨU NGỮ TIẾNG VIỆT ĐỜI THƯỜNG: tự nhiên, sinh động, biểu cảm, giàu cảm xúc, dí dỏm, sử dụng linh hoạt các từ cảm thán và quán ngữ Việt Nam (như: 'Trời đất ơi là trời', 'tóm cổ', 'nhào vô', 'tới công chuyện luôn', 'có mắt không thấy Thái Sơn', 'cho biết thế nào là lễ độ'...). \n\n"
-        "3. XƯNG HÔ ĐIỆN ẢNH HÀO SẢNG & THÍCH HỢP:\n"
-        "   - Xưng hô điện ảnh sinh động: Trong các cảnh thách đấu anh hùng cứu bạn, dùng xưng hô phóng khoáng, hào sảng (Tôi - Ông / Ta - Ngươi / Tôi - Chú / Mày - Tao tùy độ căng thẳng nhưng phải có cảm xúc, không thô thiển cục súc).\n"
-        "4. ĐỒNG BỘ KHỚP NHÉP MIỆNG & THỜI LƯỢNG NÓI (LIP-SYNC CADENCE - QUY TẮC SỐNG CÒN):\n"
-        "   - Mỗi câu thoại có `duration_sec` và yêu cầu `target_syllables`. Nhân vật trên màn hình mở miệng nói liên tục trong đúng `duration_sec` giây. Tốc độ đọc tiếng Việt chuẩn là ~3.2 - 3.8 âm tiết / giây (mỗi âm tiết = 1 từ tiếng Việt).\n"
+        "   - Chuyển ngữ sang KHẨU NGỮ TIẾNG VIỆT ĐỜI THƯỜNG: tự nhiên, sinh động, biểu cảm, giàu cảm xúc, dí dỏm, sử dụng linh hoạt các từ cảm thán và quán ngữ Việt Nam.\n\n"
+        "3. PHÂN LOẠI NHÂN VẬT ĐỐI THOẠI (SPEAKER TAGGING):\n"
+        "   - Dựa vào ngữ cảnh câu nói, hãy xác định nhân vật nói là ai: 'male' (nam giới), 'female' (nữ giới), hoặc 'narrator' (người dẫn chuyện/bình luận).\n\n"
+        "4. ĐỒNG BỘ KHỚP NHÉP MIỆNG & THỜI LƯỢNG NÓI (LIP-SYNC CADENCE):\n"
+        "   - Mỗi câu thoại có `duration_sec` và yêu cầu `target_syllables`. Tốc độ đọc tiếng Việt chuẩn là ~3.2 - 3.8 âm tiết / giây.\n"
         "   - BẮT BUỘC: Câu tiếng Việt `vi` PHẢI ĐẠT ĐỘ DÀI ÂM TIẾT nằm đúng trong khoảng `target_syllables` yêu cầu.\n"
-        "   - NẾU `duration_sec` DÀI (từ 3.5s trở lên): TUYỆT ĐỐI CẤM DỊCH NGẮN CỦN CỠN 5-8 CHỮ! Dịch ngắn sẽ làm tiếng dứt quá sớm trong khi nhân vật vẫn tiếp tục nhép miệng cử động trên màn hình mà không có tiếng (lệch khẩu hình nặng). Hãy diễn đạt đầy đủ nội dung, kết hợp thêm từ ngữ khẩu ngữ, thán từ cảm thán, ngữ điệu tự nhiên sinh động của tiếng Việt (như: 'Trời đất ơi là trời...', 'Có nghe rõ không đấy...', 'Phen này thì...', 'Mau mau...', 'Thế này thì chịu rồi...', 'Bỏ qua cho em lần này...') để câu nói kéo dài lấp đầy vừa vặn trọn vẹn thời lượng nhân vật đang cử động miệng!\n"
-        "   - NẾU `duration_sec` NGẮN (<= 2s): Dịch thật gãy gọn, súc tích, dứt khoát đúng số từ yêu cầu để tránh nói tràn sang câu tiếp theo.\n\n"
-        "5. TUYỆT ĐỐI 100% TIẾNG VIỆT THUẦN TÚY (BẮT BUỘC):\n"
-        "   - Tuyệt đối không được để sót bất kỳ một chữ Hán / ký tự tiếng Trung nào trong bản dịch 'vi'. Mọi từ đều phải được dịch hoàn toàn sang chữ quốc ngữ tiếng Việt Latinh.\n\n"
+        "   - NẾU `duration_sec` DÀI (từ 3.5s trở lên): TUYỆT ĐỐI CẤM DỊCH NGẮN CỦN CỠN 5-8 CHỮ! Dịch ngắn sẽ làm tiếng dứt quá sớm trong khi nhân vật vẫn tiếp tục nhép miệng cử động trên màn hình. Hãy diễn đạt đầy đủ, thêm từ ngữ khẩu ngữ, thán từ cảm thán để câu nói kéo dài lấp đầy vừa vặn thời lượng.\n"
+        "   - NẾU `duration_sec` NGẮN (<= 2s): Dịch thật gãy gọn, súc tích, dứt khoát đúng số từ yêu cầu.\n\n"
+        "5. TUYỆT ĐỐI 100% TIẾNG VIỆT THUẦN TÚY:\n"
+        "   - Không để sót bất kỳ chữ Hán nào trong bản dịch 'vi'.\n\n"
         "6. ĐỊNH DẠNG ĐẦU RA:\n"
-        "   Chỉ xuất kết quả dưới dạng mảng JSON thuần túy: [{\"id\": 0, \"vi\": \"...\"}], tuyệt đối không bọc markdown ```json và không kèm bất kỳ bình luận giải thích nào."
+        "   Chỉ xuất kết quả dưới dạng mảng JSON thuần túy: [{\"id\": 0, \"vi\": \"...\", \"speaker\": \"male\"|\"female\"|\"narrator\"}], tuyệt đối không bọc markdown ```json và không kèm giải thích."
     )
 
     BATCH_SIZE = 40
     batches = [segments[i : i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     semaphore = asyncio.Semaphore(3)
 
-    async def _translate_batch(batch: List[Dict[str, Any]]) -> Dict[Any, str]:
+    async def _translate_batch(batch: List[Dict[str, Any]]) -> Dict[Any, Dict[str, Any]]:
         batch_items = []
         for i, s in enumerate(batch):
             dur = round(float(s.get("end", 0.0)) - float(s.get("start", 0.0)), 2)
@@ -1027,8 +1036,8 @@ async def translate_chinese_segments(
             })
 
         prompt = (
-            "Translate the following list of lines into Vietnamese. Return the result as a JSON array:\n"
-            '[{"id": 0, "vi": "Vietnamese translation"}, ...]\n\n'
+            "Translate the following list of lines into Vietnamese with speaker detection. Return as JSON array:\n"
+            '[{"id": 0, "vi": "Vietnamese translation", "speaker": "male|female|narrator"}, ...]\n\n'
             "Source data:\n"
             + json.dumps(batch_items, ensure_ascii=False, indent=2)
         )
@@ -1045,7 +1054,7 @@ async def translate_chinese_segments(
                 raise RuntimeError(f"Lỗi dịch AI Gemini: {e}")
 
     batch_results = await asyncio.gather(*[_translate_batch(b) for b in batches])
-    trans_map: Dict[Any, str] = {}
+    trans_map: Dict[Any, Dict[str, Any]] = {}
     for m in batch_results:
         trans_map.update(m)
 
@@ -1053,13 +1062,20 @@ async def translate_chinese_segments(
     result = []
     for i, s in enumerate(segments):
         seg_id = s.get("id", i)
-        vi_text = (
+        val = (
             trans_map.get(seg_id)
             or trans_map.get(str(seg_id))
             or (trans_map.get(int(seg_id)) if isinstance(seg_id, str) and seg_id.isdigit() else None)
             or trans_map.get(i)
             or trans_map.get(str(i))
         )
+        if isinstance(val, dict):
+            vi_text = val.get("vi", "")
+            speaker = val.get("speaker", "narrator")
+        else:
+            vi_text = str(val or "")
+            speaker = "narrator"
+
         if not vi_text:
             # Fallback dịch riêng dòng này nếu LLM vô tình bỏ sót
             try:
@@ -1078,6 +1094,7 @@ async def translate_chinese_segments(
         result.append({
             **s,
             "text_vi": vi_text,
+            "speaker": speaker if speaker in ["male", "female", "narrator"] else "narrator",
         })
 
     return result
@@ -1093,7 +1110,6 @@ def _clean_vi_text(text: str) -> str:
     text = text.strip()
 
     # 1. Bóc tách nếu văn bản vô tình bị bọc trong cú pháp JSON/regex
-    # Ví dụ: [{id:0,vi:Dùng điện thoại...}] hoặc {"id":0,"vi":"Dùng điện thoại..."}
     m = re.search(r'["\']?vi["\']?\s*:\s*["\']?(.*?)(?:["\']?\s*\}|\]|\Z)', text, re.DOTALL | re.IGNORECASE)
     if m:
         extracted = m.group(1).strip()
@@ -1118,15 +1134,15 @@ def _clean_vi_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _parse_translation_reply(raw_reply: str) -> Dict[Any, str]:
+def _parse_translation_reply(raw_reply: str) -> Dict[Any, Dict[str, Any]]:
     """
-    Phân tích phản hồi dịch của Gemini/GPT thành map {id: text_vi}.
+    Phân tích phản hồi dịch của Gemini/GPT thành map {id: {"vi": text_vi, "speaker": speaker}}.
     Hỗ trợ linh hoạt:
-    1. Mảng JSON chuẩn: [{"id": 0, "vi": "..."}]
-    2. Object JSON đơn lẻ: {"id": 0, "vi": "..."} (khi video ngắn chỉ có 1 câu thoại)
+    1. Mảng JSON chuẩn: [{"id": 0, "vi": "...", "speaker": "male"|"female"|"narrator"}]
+    2. Object JSON đơn lẻ: {"id": 0, "vi": "..."}
     3. JSON unquoted keys hoặc regex trích xuất nếu cú pháp bị thiếu ngoặc
     """
-    trans_map: Dict[Any, str] = {}
+    trans_map: Dict[Any, Dict[str, Any]] = {}
     if not raw_reply:
         return trans_map
     raw_reply = raw_reply.strip()
@@ -1139,31 +1155,39 @@ def _parse_translation_reply(raw_reply: str) -> Dict[Any, str]:
             if isinstance(translated_list, list):
                 for item in translated_list:
                     if isinstance(item, dict) and "id" in item:
-                        trans_map[item["id"]] = _clean_vi_text(item.get("vi", ""))
+                        spk = str(item.get("speaker") or "narrator").lower().strip()
+                        if spk not in ["male", "female", "narrator"]:
+                            spk = "narrator"
+                        trans_map[item["id"]] = {
+                            "vi": _clean_vi_text(item.get("vi", "")),
+                            "speaker": spk,
+                        }
                 if trans_map:
                     return trans_map
         except (json.JSONDecodeError, TypeError, KeyError):
             pass
 
-    # 2. Thử parse Object JSON đơn lẻ {...} (trường hợp video chỉ có 1 câu thoại)
+    # 2. Thử parse Object JSON đơn lẻ {...}
     obj_match = re.search(r"\{[^{}]*\}", raw_reply, re.DOTALL)
     if obj_match:
         try:
             item = json.loads(obj_match.group(0))
             if isinstance(item, dict) and "id" in item and "vi" in item:
-                return {item["id"]: _clean_vi_text(item.get("vi", ""))}
+                spk = str(item.get("speaker") or "narrator").lower().strip()
+                if spk not in ["male", "female", "narrator"]:
+                    spk = "narrator"
+                return {item["id"]: {"vi": _clean_vi_text(item.get("vi", "")), "speaker": spk}}
         except (json.JSONDecodeError, TypeError):
             pass
 
-    # 3. Regex linh hoạt trích xuất từng cặp id và vi kể cả khi key không có dấu ngoặc kép
-    # Ví dụ: {id: 0, vi: "..."} hoặc [{id:0,vi:...}]
+    # 3. Regex linh hoạt trích xuất từng cặp id và vi
     pattern = re.compile(r'["\']?id["\']?\s*:\s*["\']?(\d+)["\']?\s*,\s*["\']?vi["\']?\s*:\s*["\']?([^}\]\n\r]+)', re.IGNORECASE)
     for m in pattern.finditer(raw_reply):
         try:
             idx = int(m.group(1))
             val = _clean_vi_text(m.group(2))
             if val:
-                trans_map[idx] = val
+                trans_map[idx] = {"vi": val, "speaker": "narrator"}
         except Exception:
             continue
 
