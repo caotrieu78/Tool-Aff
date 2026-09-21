@@ -223,6 +223,9 @@ export default function EditorPage() {
   // Inline caption generation tracking (set of video IDs currently generating)
   const [generatingCaptionIds, setGeneratingCaptionIds] = useState<Set<number>>(new Set());
 
+  // Modal Xem Chi Tiết Video Thành Phẩm
+  const [previewDetailVideo, setPreviewDetailVideo] = useState<VideoItem | null>(null);
+
   // Modal Chỉnh Sửa Caption Thủ Công
   const [editingCaptionVideo, setEditingCaptionVideo] = useState<VideoItem | null>(null);
   const [modalCaptionText, setModalCaptionText] = useState('');
@@ -1351,7 +1354,15 @@ export default function EditorPage() {
                         </div>
 
                         {/* Cột 2: Ảnh Thumbnail 16:9 sắc nét */}
-                        <div className="relative w-28 sm:w-36 aspect-[16/9] rounded-xl overflow-hidden bg-black border border-slate-800/90 shrink-0 group/thumb">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedVideoId(v.id);
+                            setPreviewDetailVideo(v);
+                          }}
+                          className="relative w-28 sm:w-36 aspect-[16/9] rounded-xl overflow-hidden bg-black border border-slate-800/90 shrink-0 group/thumb cursor-pointer hover:border-violet-500/70 transition"
+                          title="Bấm để xem chi tiết video này"
+                        >
                           {v.thumbnail_url ? (
                             <img
                               src={libraryApi.getMediaUrl(v.thumbnail_url)}
@@ -1449,13 +1460,17 @@ export default function EditorPage() {
                         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            onClick={() => setSelectedVideoId(v.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVideoId(v.id);
+                              setPreviewDetailVideo(v);
+                            }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
                               isSelected
                                 ? 'bg-violet-600 text-white shadow-sm'
                                 : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700/50'
                             }`}
-                            title="Xem video trên màn hình điện thoại bên trái"
+                            title="Bấm để xem chi tiết video này"
                           >
                             <Eye size={13} />
                             <span>Xem</span>
@@ -2015,6 +2030,112 @@ export default function EditorPage() {
                     <span>Lưu Thay Đổi</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: XEM CHI TIẾT VIDEO THÀNH PHẨM (FINISHED VIDEO DETAIL PREVIEW MODAL) ── */}
+      {previewDetailVideo && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#121520] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-[#161926]">
+              <div className="flex items-center gap-2.5 min-w-0 pr-4">
+                <div className="w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center shrink-0">
+                  <Eye size={16} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-white truncate" title={previewDetailVideo.title}>
+                    {previewDetailVideo.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                    {previewDetailVideo.resolution && (
+                      <span className="font-mono text-violet-300">
+                        {previewDetailVideo.resolution}
+                      </span>
+                    )}
+                    <span>•</span>
+                    <span className="font-mono text-slate-300">
+                      {formatSec(previewDetailVideo.duration)}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold border border-emerald-500/30">
+                      Đã Lồng Tiếng
+                    </span>
+                    {previewDetailVideo.has_caption && (
+                      <span className="px-1.5 py-0.2 rounded bg-violet-500/15 text-violet-300 text-[10px] font-semibold border border-violet-500/30">
+                        Đã Có Cap
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDetailVideo(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Video Player */}
+            <div className="relative bg-black flex items-center justify-center max-h-[60vh] overflow-hidden">
+              <video
+                src={libraryApi.getMediaUrl(previewDetailVideo.video_url || `/api/storage/${previewDetailVideo.id}/final.mp4`)}
+                controls
+                autoPlay
+                playsInline
+                className="w-full max-h-[60vh] object-contain shadow-2xl"
+              />
+            </div>
+
+            {/* Caption & Hashtags info if available */}
+            {previewDetailVideo.caption && (
+              <div className="px-4 py-2.5 bg-[#0f111a] border-t border-slate-800/80 text-xs">
+                <div className="flex items-start gap-2">
+                  <span className="text-slate-400 font-semibold shrink-0 text-[11px]">Caption:</span>
+                  <p className="text-slate-200 line-clamp-2 leading-relaxed text-[11.5px]">
+                    {previewDetailVideo.caption}
+                  </p>
+                </div>
+                {previewDetailVideo.hashtags && previewDetailVideo.hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5 pl-14">
+                    {previewDetailVideo.hashtags.map((tag, idx) => (
+                      <span key={idx} className="text-[10px] font-mono text-violet-400 bg-violet-950/40 px-1.5 py-0.5 rounded border border-violet-800/30">
+                        {tag.startsWith('#') ? tag : `#${tag}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="p-3.5 bg-[#121520] border-t border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const vid = previewDetailVideo;
+                    setPreviewDetailVideo(null);
+                    openCaptionModal(vid);
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-violet-300 hover:text-white bg-violet-950/40 hover:bg-violet-900/50 border border-violet-500/30 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Edit3 size={13} />
+                  <span>Sửa Caption</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDetailVideo(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition cursor-pointer"
+              >
+                Đóng
               </button>
             </div>
           </div>
