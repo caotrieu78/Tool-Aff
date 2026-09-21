@@ -56,7 +56,7 @@ export const DEFAULT_LOCALIZE_SETTINGS: LocalizeSettings = {
   syncMode: 'hybrid',
   aiVoiceVolume: 100,
   keepOriginalAudio: true,
-  keepBgmSfx: true,
+  keepBgmSfx: false,
   multiVoice: false,
   voiceMale: 'vi-VN-NamMinhNeural',
   voiceFemale: 'vi-VN-HoaiMyNeural',

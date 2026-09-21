@@ -1291,7 +1291,7 @@ export default function LocalizeEditorPage() {
 
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Nhạc Nền Gốc (BGM Volume)</span>
+                      <span className="text-[11px] text-slate-400">Âm Lượng Âm Thanh Gốc</span>
                       <span className="font-mono text-[11px] text-indigo-400">{volumeOriginalBgm}%</span>
                     </div>
                     <input
@@ -1301,24 +1301,6 @@ export default function LocalizeEditorPage() {
                       value={volumeOriginalBgm}
                       onChange={(e) => {
                         setVolumeOriginalBgm(parseInt(e.target.value));
-                        setHasUnrenderedChanges(true);
-                      }}
-                      className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Tiếng Thoại Gốc (Thường để 0% để tắt)</span>
-                      <span className="font-mono text-[11px] text-indigo-400">{volumeOriginalVoice}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={volumeOriginalVoice}
-                      onChange={(e) => {
-                        setVolumeOriginalVoice(parseInt(e.target.value));
                         setHasUnrenderedChanges(true);
                       }}
                       className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"

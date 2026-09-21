@@ -304,7 +304,7 @@ export default function LocalizePresetsPage() {
       customAiStyles: s.custom_ai_styles || s.customAiStyles || [],
       customAiPrompt: s.custom_ai_prompt || s.customAiPrompt || '',
       syncMode: s.sync_mode || s.syncMode || DEFAULT_LOCALIZE_SETTINGS.syncMode,
-      keepBgmSfx: s.keep_bgm_sfx !== undefined ? Boolean(s.keep_bgm_sfx) : true,
+      keepBgmSfx: s.keep_bgm_sfx !== undefined ? Boolean(s.keep_bgm_sfx) : false,
       multiVoice: Boolean(s.multi_voice),
       voiceMale: s.voice_male || 'vi-VN-NamMinhNeural',
       voiceFemale: s.voice_female || 'vi-VN-HoaiMyNeural',
@@ -375,9 +375,9 @@ export default function LocalizePresetsPage() {
         sync_mode: formSettings.syncMode,
         volume_voiceover: formSettings.aiVoiceVolume,
         keep_original_audio: formSettings.keepOriginalAudio,
-        keep_bgm_sfx: formSettings.keepBgmSfx ?? true,
+        keep_bgm_sfx: false,
         volume_original: formSettings.bgmVolume,
-        volume_original_voice: formSettings.originalVoiceVolume,
+        volume_original_voice: 0,
         cover_old_subtitle: formSettings.coverOldSub,
         blur_amount: formSettings.blurAmount,
         blur_method: formSettings.blurMethod,
@@ -1677,76 +1677,31 @@ export default function LocalizePresetsPage() {
                             }
                             className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
                           />
-                          <span>Giữ lại âm thanh / nhạc nền gốc của video</span>
+                          <span>Giữ lại âm thanh gốc của video</span>
                         </label>
 
                         {formSettings.keepOriginalAudio && (
-                          <div className="space-y-4 pt-1">
-                            {/* Nút bật tách giọng nói gốc giữ trọn BGM & SFX */}
-                            <label className="flex items-start gap-2.5 cursor-pointer text-xs font-bold text-emerald-400 select-none bg-emerald-950/20 p-3 rounded-xl border border-emerald-500/20">
-                              <input
-                                type="checkbox"
-                                checked={formSettings.keepBgmSfx ?? true}
-                                onChange={(e) =>
-                                  setFormSettings({ ...formSettings, keepBgmSfx: e.target.checked })
-                                }
-                                className="w-4 h-4 mt-0.5 rounded text-emerald-600 bg-slate-900 border-slate-700 shrink-0"
-                              />
-                              <div className="flex flex-col">
-                                <span className="flex items-center gap-1.5">
-                                  <span>Tách giọng nói gốc — Giữ trọn vẹn Nhạc nền (BGM) & Hiệu ứng âm thanh (SFX)</span>
-                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">Khuyên dùng</span>
-                                </span>
-                                <span className="text-[11px] text-slate-400 font-normal mt-0.5">
-                                  Triệt tiêu lời thoại tiếng Trung/Anh của nhân vật bằng bộ lọc triệt tiêu âm thanh trung tâm (Out-of-Phase Cancellation), bảo toàn trọn vẹn tiếng động kịch tính, tiếng cười, tiếng nổ và nhạc nền stereo.
-                                </span>
-                              </div>
-                            </label>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-300 font-medium">Âm lượng nhạc nền gốc (BGM):</span>
-                                <span className="font-mono font-bold text-amber-400">
-                                  {formSettings.bgmVolume}%
-                                </span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="2"
-                                value={formSettings.bgmVolume}
-                                onChange={(e) =>
-                                  setFormSettings({ ...formSettings, bgmVolume: Number(e.target.value) })
-                                }
-                                className="w-full accent-amber-500 cursor-pointer"
-                              />
+                          <div className="space-y-2 pt-1 pl-6">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-300 font-medium">Âm lượng âm thanh gốc:</span>
+                              <span className="font-mono font-bold text-amber-400">
+                                {formSettings.bgmVolume}%
+                              </span>
                             </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-300 font-medium">
-                                  Âm lượng giọng nói gốc (tiếng Trung/Anh):
-                                </span>
-                                <span className="font-mono font-bold text-rose-400">
-                                  {formSettings.originalVoiceVolume}%
-                                </span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="2"
-                                value={formSettings.originalVoiceVolume}
-                                onChange={(e) =>
-                                  setFormSettings({
-                                    ...formSettings,
-                                    originalVoiceVolume: Number(e.target.value),
-                                  })
-                                }
-                                className="w-full accent-rose-500 cursor-pointer"
-                              />
-                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={formSettings.bgmVolume}
+                              onChange={(e) =>
+                                setFormSettings({ ...formSettings, bgmVolume: Number(e.target.value) })
+                              }
+                              className="w-full accent-amber-500 cursor-pointer"
+                            />
+                            <p className="text-[11px] text-slate-400">
+                              Âm thanh nguyên bản của video được giữ nguyên và phát êm ở mức {formSettings.bgmVolume}% làm nền phía dưới giọng đọc thuyết minh (không dùng bộ lọc tách âm gây méo tiếng).
+                            </p>
                           </div>
                         )}
                       </div>
