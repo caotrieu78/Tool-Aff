@@ -244,6 +244,14 @@ export default function ModuleLocalizePage() {
   const [showResultPreview, setShowResultPreview] = useState(false);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
   const [previewModalVideoId, setPreviewModalVideoId] = useState<number | null>(null);
+  const [previewDetailVideo, setPreviewDetailVideo] = useState<VideoItem | null>(null);
+
+  const formatFileSize = (bytes?: number | null) => {
+    if (!bytes) return '';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
+  };
+
   const [isSavingFinal, setIsSavingFinal] = useState(false);
   const [selectedDownloadIds, setSelectedDownloadIds] = useState<number[]>([]);
   const [savedEditorIds, setSavedEditorIds] = useState<number[]>([]);
@@ -1453,7 +1461,15 @@ export default function ModuleLocalizePage() {
                       </div>
 
                       {/* Cột 2: Thumbnail Video */}
-                      <div className="w-20 sm:w-28 aspect-video rounded-xl bg-slate-900 border border-slate-700/60 overflow-hidden relative shrink-0">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVideo(video);
+                          setPreviewDetailVideo(video);
+                        }}
+                        className="w-20 sm:w-28 aspect-video rounded-xl bg-slate-900 border border-slate-700/60 overflow-hidden relative shrink-0 cursor-pointer group/thumb hover:border-indigo-500/70 transition"
+                        title="Bấm để xem chi tiết video này"
+                      >
                         {video.thumbnail_url ? (
                           <img
                             src={libraryApi.getMediaUrl(video.thumbnail_url)}
@@ -1575,17 +1591,20 @@ export default function ModuleLocalizePage() {
                         )}
                       </div>
 
-                      {/* Cột 5: Nút Xem trước */}
+                      {/* Cột 5: Nút Xem chi tiết */}
                       <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          onClick={() => setSelectedVideo(video)}
+                          onClick={() => {
+                            setSelectedVideo(video);
+                            setPreviewDetailVideo(video);
+                          }}
                           className={`p-2 rounded-xl transition cursor-pointer ${
                             isPreviewActive
                               ? 'bg-indigo-600 text-white shadow-sm'
                               : 'text-slate-400 hover:text-white hover:bg-slate-800'
                           }`}
-                          title="Xem trước trên màn hình lớn bên trái"
+                          title="Bấm để xem chi tiết video này"
                         >
                           <Eye size={15} />
                         </button>
@@ -1614,7 +1633,15 @@ export default function ModuleLocalizePage() {
                       }`}
                     >
                       {/* Thumbnail Container */}
-                      <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-slate-800/80">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVideo(video);
+                          setPreviewDetailVideo(video);
+                        }}
+                        className="relative aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-slate-800/80 cursor-pointer group/thumb hover:border-indigo-500/70 transition"
+                        title="Bấm để xem chi tiết video này"
+                      >
                         {video.thumbnail_url ? (
                           <img
                             src={libraryApi.getMediaUrl(video.thumbnail_url)}
@@ -2028,6 +2055,89 @@ export default function ModuleLocalizePage() {
           )}
         </div>
       </div>
+
+      {/* ── MODAL: XEM CHI TIẾT VIDEO THÔ (RAW VIDEO PREVIEW MODAL) ──────────────── */}
+      {previewDetailVideo && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-[#121520] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-[#161926]">
+              <div className="flex items-center gap-2.5 min-w-0 pr-4">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center shrink-0">
+                  <Eye size={16} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-white truncate" title={previewDetailVideo.title}>
+                    {previewDetailVideo.title}
+                  </h3>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                    {previewDetailVideo.resolution && (
+                      <span className="font-mono text-indigo-300">
+                        {previewDetailVideo.resolution}
+                      </span>
+                    )}
+                    <span>•</span>
+                    <span className="font-mono text-slate-300">
+                      {formatDuration(previewDetailVideo.duration)}
+                    </span>
+                    {previewDetailVideo.file_size && (
+                      <>
+                        <span>•</span>
+                        <span>{formatFileSize(previewDetailVideo.file_size)}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDetailVideo(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Video Player */}
+            <div className="relative bg-black flex items-center justify-center max-h-[65vh] overflow-hidden">
+              <video
+                src={libraryApi.getMediaUrl(previewDetailVideo.video_url || `/api/storage/${previewDetailVideo.id}/original.mp4`)}
+                controls
+                autoPlay
+                playsInline
+                className="w-full max-h-[65vh] object-contain shadow-2xl"
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3.5 bg-[#121520] border-t border-slate-800 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedVideo(previewDetailVideo);
+                  if (!selectedVideoIds.has(previewDetailVideo.id)) {
+                    setSelectedVideoIds(new Set([...selectedVideoIds, previewDetailVideo.id]));
+                  }
+                  setPreviewDetailVideo(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Chọn Video Này Để Lồng Tiếng</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDetailVideo(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           4. RESULT PREVIEW MODAL (XEM THỬ VIDEO VIỆT HÓA HOÀN CHỈNH)
