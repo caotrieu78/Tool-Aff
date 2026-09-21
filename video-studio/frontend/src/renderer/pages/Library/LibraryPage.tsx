@@ -809,25 +809,10 @@ export default function LibraryPage() {
                     </div>
 
                     {/* Action Bar */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-1">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => navigate('/localize', { state: { videoId: video.id } })}
-                          className="p-1.5 rounded-md hover:bg-indigo-600/20 hover:text-indigo-400 text-slate-400 transition text-[11px] flex items-center gap-1"
-                          title="Chuyển sang Module: Lồng Tiếng"
-                        >
-                          <Wand2 size={13} />
-                          <span>Lồng Tiếng</span>
-                        </button>
-                        <button
-                          onClick={() => navigate('/affiliate', { state: { videoId: video.id } })}
-                          className="p-1.5 rounded-md hover:bg-emerald-600/20 hover:text-emerald-400 text-slate-400 transition text-[11px] flex items-center gap-1"
-                          title="Chuyển sang Module 2: Affiliate"
-                        >
-                          <ShoppingBag size={13} />
-                          <span>Affiliate</span>
-                        </button>
-                      </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">
+                        {video.created_at ? new Date(video.created_at).toLocaleDateString('vi-VN') : ''}
+                      </span>
 
                       <button
                         onClick={(e) => {
@@ -835,7 +820,7 @@ export default function LibraryPage() {
                           promptDeleteVideo(video);
                         }}
                         disabled={confirmDialog.isLoading}
-                        className="p-1.5 rounded-md hover:bg-rose-500/20 hover:text-rose-400 text-slate-500 transition"
+                        className="p-1.5 rounded-md hover:bg-rose-500/20 hover:text-rose-400 text-slate-500 transition cursor-pointer ml-auto"
                         title="Xóa video"
                       >
                         <Trash2 size={13} />
