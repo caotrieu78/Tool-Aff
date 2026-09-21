@@ -1471,19 +1471,6 @@ export default function ModuleLocalizePage() {
                           {formatDuration(video.duration)}
                         </span>
 
-                        {/* Badge Chế độ nhận diện theo Cấu hình Preset đang chọn */}
-                        {(() => {
-                          const assignedPreset = getPresetForVideo(video.id);
-                          const recogInfo = getRecogBadgeInfo(assignedPreset);
-                          return (
-                            <div className="absolute bottom-1 left-1 z-10 pointer-events-none">
-                              <span className={`px-1.5 py-0.5 rounded ${recogInfo.badgeClass} text-[9px] font-bold flex items-center gap-0.5 shadow-sm border`}>
-                                {recogInfo.thumbIcon} {recogInfo.shortLabel}
-                              </span>
-                            </div>
-                          );
-                        })()}
-
                         {/* Đang xem badge */}
                         {isPreviewActive && (
                           <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center gap-0.5 shadow">
@@ -1498,25 +1485,9 @@ export default function ModuleLocalizePage() {
                           {video.title}
                         </p>
                         <div className="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
-                          <span className="truncate max-w-[140px] text-slate-400 font-medium">
+                          <span className="truncate max-w-[180px] text-slate-400 font-medium">
                             {channels.find((c) => c.id === video.channel_id)?.name || 'Kênh mặc định'}
                           </span>
-                          <span className="text-slate-600 shrink-0">•</span>
-                          {video.has_localized ? (
-                            <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
-                              <Mic size={10} className="text-emerald-400 shrink-0" />
-                              <span>Đã Lồng Tiếng</span>
-                            </span>
-                          ) : video.status === 'done' ? (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0">
-                              Đã Dịch (Chưa lồng tiếng)
-                            </span>
-                          ) : (
-                            <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap shrink-0">
-                              Gốc
-                            </span>
-                          )}
-
                           <span className="text-slate-600 shrink-0">•</span>
                           <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap shrink-0">STT: {idx + 1}</span>
                         </div>
@@ -1672,19 +1643,6 @@ export default function ModuleLocalizePage() {
                           </div>
                         </div>
 
-                        {/* Badge Chế độ nhận diện theo Cấu hình Preset đang chọn */}
-                        {(() => {
-                          const assignedPreset = getPresetForVideo(video.id);
-                          const recogInfo = getRecogBadgeInfo(assignedPreset);
-                          return (
-                            <div className="absolute top-2 left-8 z-10 pointer-events-none">
-                              <span className={`px-1.5 py-0.5 rounded ${recogInfo.badgeClass} text-[9px] font-bold flex items-center gap-0.5 shadow border`}>
-                                {recogInfo.thumbIcon} {recogInfo.shortLabel}
-                              </span>
-                            </div>
-                          );
-                        })()}
-
                         {/* Top Right: Eye preview active badge */}
                         {isPreviewActive && (
                           <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
@@ -1706,25 +1664,9 @@ export default function ModuleLocalizePage() {
                           {video.title}
                         </p>
                         <div className="flex items-center justify-between text-[10px] text-slate-400 gap-1 flex-wrap">
-                          <span className="truncate max-w-[120px]">
+                          <span className="truncate max-w-[160px]">
                             {channels.find((c) => c.id === video.channel_id)?.name || 'Kênh mặc định'}
                           </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {video.has_localized ? (
-                              <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
-                                <Mic size={10} className="text-emerald-400" />
-                                <span>Đã Lồng Tiếng</span>
-                              </span>
-                            ) : video.status === 'done' ? (
-                              <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                                Đã Dịch
-                              </span>
-                            ) : (
-                              <span className="font-medium text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700/50">
-                                Gốc
-                              </span>
-                            )}
-                          </div>
                         </div>
                       </div>
 
