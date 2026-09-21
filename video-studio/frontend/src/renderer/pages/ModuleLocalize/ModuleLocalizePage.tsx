@@ -10,9 +10,6 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  Clock,
-  Hourglass,
-  CheckCheck,
   Sparkles,
   ArrowRight,
   Eye,
@@ -43,7 +40,6 @@ import {
   CheckSquare,
   Square,
   X,
-  ListFilter,
   Smartphone,
   Share2,
   Bookmark,
@@ -113,24 +109,7 @@ export default function ModuleLocalizePage() {
   // Presets State
   const [presets, setPresets] = useState<LocalizePreset[]>([]);
   const [batchPresetId, setBatchPresetId] = useState<number | null>(null);
-  const [localizeStatusFilter, setLocalizeStatusFilter] = useState<'all' | 'unlocalized' | 'localized'>('all');
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Đóng dropdown trạng thái khi click ra ngoài
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-    if (isStatusDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isStatusDropdownOpen]);
 
   // Mapping cấu hình riêng biệt cho từng video: { [videoId]: presetId }
   const [videoPresetMap, setVideoPresetMap] = useState<Record<number, number>>({});
@@ -390,14 +369,9 @@ export default function ModuleLocalizePage() {
         selectedLibraryCategory === 'all' ||
         (v.category_id && String(v.category_id) === selectedLibraryCategory);
 
-      const matchLocalizeStatus =
-        localizeStatusFilter === 'all' ||
-        (localizeStatusFilter === 'localized' && Boolean(v.has_localized)) ||
-        (localizeStatusFilter === 'unlocalized' && !v.has_localized);
-
-      return matchSearch && matchChannel && matchCategory && matchLocalizeStatus;
+      return matchSearch && matchChannel && matchCategory;
     });
-  }, [videos, searchQuery, selectedChannel, selectedLibraryCategory, localizeStatusFilter]);
+  }, [videos, searchQuery, selectedChannel, selectedLibraryCategory]);
 
   // Toggle Video Selection for Batch Processing
   const handleToggleSelectVideo = (id: number, e: React.MouseEvent) => {
@@ -1222,10 +1196,10 @@ export default function ModuleLocalizePage() {
               </div>
             </div>
 
-            {/* Filter Bar: Search + Channel + Category + Trạng thái Lồng tiếng */}
+            {/* Filter Bar: Search + Channel + Category */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-2.5">
               {/* Search */}
-              <div className="sm:col-span-2 xl:col-span-4 relative">
+              <div className="sm:col-span-2 xl:col-span-6 relative">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
@@ -1253,7 +1227,7 @@ export default function ModuleLocalizePage() {
               </div>
 
               {/* Category filter */}
-              <div className="sm:col-span-1 xl:col-span-2">
+              <div className="sm:col-span-1 xl:col-span-3">
                 <select
                   value={selectedLibraryCategory}
                   onChange={(e) => setSelectedLibraryCategory(e.target.value)}
@@ -1266,94 +1240,6 @@ export default function ModuleLocalizePage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Trạng thái lồng tiếng filter (Custom Dropdown chuẩn icon vector) */}
-              <div ref={statusDropdownRef} className="sm:col-span-2 xl:col-span-3 relative">
-                {(() => {
-                  const unlocalizedCount = videos.filter((v) => !v.has_localized).length;
-                  const localizedCount = videos.filter((v) => v.has_localized).length;
-
-                  const statusOptions = [
-                    {
-                      id: 'all' as const,
-                      label: 'Tất cả trạng thái',
-                      count: videos.length,
-                      icon: <ListFilter size={13} className="text-indigo-400 shrink-0" />,
-                    },
-                    {
-                      id: 'unlocalized' as const,
-                      label: 'Cần lồng tiếng',
-                      count: unlocalizedCount,
-                      icon: <Clock size={13} className="text-amber-400 shrink-0" />,
-                    },
-                    {
-                      id: 'localized' as const,
-                      label: 'Đã lồng tiếng',
-                      count: localizedCount,
-                      icon: <CheckCheck size={14} className="text-emerald-400 shrink-0" />,
-                    },
-                  ];
-
-                  const activeOption = statusOptions.find((o) => o.id === localizeStatusFilter) || statusOptions[0];
-
-                  return (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setIsStatusDropdownOpen((prev) => !prev)}
-                        className={`w-full px-3 py-2 text-xs bg-[#0b0d13] border rounded-xl transition cursor-pointer flex items-center justify-between gap-1.5 ${
-                          isStatusDropdownOpen
-                            ? 'border-indigo-500 ring-1 ring-indigo-500/40 text-white'
-                            : localizeStatusFilter !== 'all'
-                            ? 'border-indigo-500/60 bg-indigo-950/20 text-indigo-200'
-                            : 'border-slate-800 text-slate-300 hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          {activeOption.icon}
-                          <span className="truncate font-medium">{activeOption.label}</span>
-                          <span className="text-[11px] text-slate-400 font-mono">({activeOption.count})</span>
-                        </div>
-                        <ChevronDown
-                          size={13}
-                          className={`text-slate-400 shrink-0 transition-transform duration-150 ${
-                            isStatusDropdownOpen ? 'rotate-180 text-indigo-400' : ''
-                          }`}
-                        />
-                      </button>
-
-                      {isStatusDropdownOpen && (
-                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#141722] border border-slate-700/80 rounded-xl shadow-2xl p-1 z-30 space-y-0.5 backdrop-blur-md">
-                          {statusOptions.map((opt) => {
-                            const isSelected = localizeStatusFilter === opt.id;
-                            return (
-                              <button
-                                key={opt.id}
-                                type="button"
-                                onClick={() => {
-                                  setLocalizeStatusFilter(opt.id);
-                                  setIsStatusDropdownOpen(false);
-                                }}
-                                className={`w-full px-2.5 py-2 text-xs rounded-lg transition flex items-center justify-between gap-2 text-left cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-indigo-600/20 text-indigo-300 font-semibold'
-                                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  {opt.icon}
-                                  <span>{opt.label}</span>
-                                </div>
-                                <span className="text-[11px] text-slate-400 font-mono">({opt.count})</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
               </div>
             </div>
 
